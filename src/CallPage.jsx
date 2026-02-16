@@ -301,7 +301,7 @@ export default function CallPage({ lang, setLang }) {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img src={logo} alt="Logo" style={{ height: 40 }} />
-            <div style={{ fontSize: 14, color: "#16a34a", fontWeight: 700 }}>
+            <div style={{ fontSize: 14, color: "#1e9771" }}>
               {t.tagline}
             </div>
           </div>

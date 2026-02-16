@@ -139,7 +139,7 @@ export default function ContactPage({ lang, setLang }) {
           {/* Logo + Tagline */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src={logo} alt="Logo" style={{ height: 44 }} />
-            <span style={{ fontSize: 14, color: "#16a34a" }}>{t.tagline}</span>
+            <span style={{ fontSize: 14, color: "#1e9771" }}>{t.tagline}</span>
           </div>
 
           {/* Sélecteur de langue */}

@@ -184,7 +184,7 @@ function HomePage({ lang, setLang }) {
           {/* Logo + Tagline */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src={logo} alt="Logo" style={{ height: 44 }} />
-            <div style={{ fontSize: 14, color: "#16a34a" }}>{t.tagline}</div>
+            <div style={{ fontSize: 14, color: "#1e9771" }}>{t.tagline}</div>
           </div>
 
           {/* Sélecteur de langue */}
