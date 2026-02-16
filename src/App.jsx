@@ -1,14 +1,39 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom"; // Navigation
+// App.jsx
+import { useEffect, useMemo, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+
 import logo from "./assets/logo.png";
+import ContactPage from "./ContactPage.jsx";
+import CallPage from "./CallPage.jsx";
 
 export default function App() {
-  const [lang, setLang] = useState("fr");
+  const [lang, setLang] = useState(() => localStorage.getItem("lang") || "fr");
 
+  useEffect(() => {
+    localStorage.setItem("lang", lang);
+  }, [lang]);
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage lang={lang} setLang={setLang} />} />
+        <Route
+          path="/contact"
+          element={<ContactPage lang={lang} setLang={setLang} />}
+        />
+        <Route
+          path="/call"
+          element={<CallPage lang={lang} setLang={setLang} />}
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+function HomePage({ lang, setLang }) {
   const t = useMemo(() => {
     const translations = {
       fr: {
-        langName: "Français",
         tagline: "Votre partenaire santé de confiance",
         heroTitle: "Bienvenue",
         heroSubtitle:
@@ -24,12 +49,11 @@ export default function App() {
         s3Desc: "Une équipe disponible 24/7 pour vous accompagner",
       },
       en: {
-        langName: "English",
         tagline: "Your trusted health partner",
         heroTitle: "Welcome",
         heroSubtitle:
           "We are committed to delivering high-quality healthcare with compassion and professionalism.",
-        btnStart: "Get started",
+        btnStart: "Start",
         btnContact: "Contact us",
         servicesTitle: "Our Services",
         s1Title: "Quality Care",
@@ -40,7 +64,6 @@ export default function App() {
         s3Desc: "A team available 24/7 to assist you",
       },
       es: {
-        langName: "Español",
         tagline: "Tu socio de salud de confianza",
         heroTitle: "Bienvenido",
         heroSubtitle:
@@ -56,7 +79,6 @@ export default function App() {
         s3Desc: "Un equipo disponible 24/7 para ayudarte",
       },
       pt: {
-        langName: "Português",
         tagline: "Seu parceiro de saúde de confiança",
         heroTitle: "Bem-vindo",
         heroSubtitle:
@@ -72,7 +94,6 @@ export default function App() {
         s3Desc: "Uma equipe disponível 24/7 para te acompanhar",
       },
       ar: {
-        langName: "العربية",
         tagline: "شريكك الصحي الموثوق",
         heroTitle: "مرحباً بك",
         heroSubtitle:
@@ -88,7 +109,6 @@ export default function App() {
         s3Desc: "فريق متاح 24/7 لمساعدتك",
       },
       tr: {
-        langName: "Türkçe",
         tagline: "Güvenilir sağlık ortağınız",
         heroTitle: "Hoş geldiniz",
         heroSubtitle:
@@ -104,7 +124,8 @@ export default function App() {
         s3Desc: "Size yardımcı olmak için 7/24 ekip",
       },
     };
-    return translations[lang];
+
+    return translations[lang] || translations.fr;
   }, [lang]);
 
   const isRTL = lang === "ar";
@@ -128,6 +149,7 @@ export default function App() {
     flexDirection: "column",
     gap: 10,
     wordBreak: "break-word",
+    background: "white",
   };
 
   return (
@@ -156,10 +178,11 @@ export default function App() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: 16,
           }}
         >
           {/* Logo + Tagline */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: -10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src={logo} alt="Logo" style={{ height: 44 }} />
             <div style={{ fontSize: 14, color: "#16a34a" }}>{t.tagline}</div>
           </div>
@@ -185,13 +208,14 @@ export default function App() {
                 background: "transparent",
                 fontWeight: 600,
                 color: "#0f172a",
+                cursor: "pointer",
               }}
             >
               <option value="fr">Français🇫🇷</option>
               <option value="en">English🇬🇧</option>
               <option value="es">Español🇪🇸</option>
               <option value="pt">Português🇵🇹</option>
-              <option value="ar">العربية🇩🇿🇲🇦🇹🇳</option>
+              <option value="ar">العربية🇲🇦🇹🇳🇩🇿</option>
               <option value="tr">Türkçe🇹🇷</option>
             </select>
           </div>
@@ -206,6 +230,7 @@ export default function App() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          paddingTop: 10,
         }}
       >
         <div
@@ -219,16 +244,17 @@ export default function App() {
             gap: 18,
           }}
         >
+          {/* IMPORTANT : plus de minHeight débile */}
           <h1
             style={{
-              fontSize: "clamp(44px, 7vw, 68px)",
+              fontSize: "clamp(42px, 6vw, 64px)",
               fontWeight: 800,
-              minHeight: 90,
               color: "#0284c7",
               margin: 0,
-              lineHeight: 1.15,
+              lineHeight: 1.1,
               direction: textDir,
               textAlign: "center",
+              paddingTop: 6,
             }}
           >
             {t.heroTitle}
@@ -238,7 +264,6 @@ export default function App() {
             style={{
               fontSize: 20,
               maxWidth: 780,
-              minHeight: 80,
               margin: "0 auto",
               lineHeight: 1.6,
               direction: textDir,
@@ -249,11 +274,37 @@ export default function App() {
           </p>
 
           <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-            <button style={{ padding: "12px 24px", borderRadius: 12 }}>{t.btnStart}</button>
+            {/* Commencer -> page appel */}
+            <Link to="/call">
+              <button
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: "#0284c7",
+                  color: "white",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {t.btnStart}
+              </button>
+            </Link>
 
-            {/* Lien vers ContactPage avec texte traduit */}
             <Link to="/contact">
-              <button style={{ padding: "12px 24px", borderRadius: 12 }}>{t.btnContact}</button>
+              <button
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 12,
+                  border: "1px solid #0284c7",
+                  background: "white",
+                  color: "#0284c7",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {t.btnContact}
+              </button>
             </Link>
           </div>
         </div>

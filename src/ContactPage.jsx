@@ -1,72 +1,86 @@
-import { useState, useEffect } from "react";
+// ContactPage.jsx
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import logo from "./assets/logo.png";
 
-export default function ContactPage({ langProp = "fr" }) {
-  const [lang, setLang] = useState(langProp);
+export default function ContactPage({ lang, setLang }) {
+  const translations = useMemo(() => {
+    return {
+      fr: {
+        tagline: "Votre partenaire santé de confiance",
+        contactTitle: "Contactez-nous",
+        phone: "Téléphone",
+        fax: "Fax",
+        email: "E-mail",
+        postalAddress: "Adresse postale",
+        website: "Site internet",
+        back: "Retour",
+      },
+      en: {
+        tagline: "Your trusted health partner",
+        contactTitle: "Contact us",
+        phone: "Phone",
+        fax: "Fax",
+        email: "Email",
+        postalAddress: "Postal Address",
+        website: "Website",
+        back: "Back",
+      },
+      es: {
+        tagline: "Tu socio de salud de confianza",
+        contactTitle: "Contáctanos",
+        phone: "Teléfono",
+        fax: "Fax",
+        email: "Correo electrónico",
+        postalAddress: "Dirección postal",
+        website: "Sitio web",
+        back: "Volver",
+      },
+      pt: {
+        tagline: "Seu parceiro de saúde de confiança",
+        contactTitle: "Fale conosco",
+        phone: "Telefone",
+        fax: "Fax",
+        email: "E-mail",
+        postalAddress: "Endereço postal",
+        website: "Website",
+        back: "Voltar",
+      },
+      ar: {
+        tagline: "شريكك الصحي الموثوق",
+        contactTitle: "تواصل معنا",
+        phone: "هاتف",
+        fax: "فاكس",
+        email: "البريد الإلكتروني",
+        postalAddress: "العنوان البريدي",
+        website: "الموقع الإلكتروني",
+        back: "رجوع",
+      },
+      tr: {
+        tagline: "Güvenilir sağlık ortağınız",
+        contactTitle: "Bize ulaşın",
+        phone: "Telefon",
+        fax: "Faks",
+        email: "E-posta",
+        postalAddress: "Posta adresi",
+        website: "Web sitesi",
+        back: "Geri",
+      },
+    };
+  }, []);
 
-  // Mettre à jour si langProp change depuis la page principale
-  useEffect(() => {
-    setLang(langProp);
-  }, [langProp]);
+  const t = translations[lang] || translations.fr;
 
-  const translations = {
-    fr: {
-      tagline: "Votre partenaire santé de confiance",
-      title: "Contactez-nous",
-      phone: "Téléphone",
-      fax: "Fax",
-      email: "E-mail",
-      address: "Adresse",
-      website: "Site web",
-    },
-    en: {
-      tagline: "Your trusted health partner",
-      title: "Contact us",
-      phone: "Phone",
-      fax: "Fax",
-      email: "E-mail",
-      address: "Address",
-      website: "Website",
-    },
-    es: {
-      tagline: "Tu socio de salud de confianza",
-      title: "Contáctanos",
-      phone: "Teléfono",
-      fax: "Fax",
-      email: "Correo electrónico",
-      address: "Dirección",
-      website: "Sitio web",
-    },
-    pt: {
-      tagline: "Seu parceiro de saúde de confiança",
-      title: "Fale conosco",
-      phone: "Telefone",
-      fax: "Fax",
-      email: "E-mail",
-      address: "Endereço",
-      website: "Site",
-    },
-    ar: {
-      tagline: "شريكك الصحي الموثوق",
-      title: "تواصل معنا",
-      phone: "هاتف",
-      fax: "فاكس",
-      email: "البريد الإلكتروني",
-      address: "العنوان",
-      website: "الموقع الإلكتروني",
-    },
-    tr: {
-      tagline: "Güvenilir sağlık ortağınız",
-      title: "Bize ulaşın",
-      phone: "Telefon",
-      fax: "Faks",
-      email: "E-posta",
-      address: "Adres",
-      website: "Web sitesi",
-    },
+  const isRTL = lang === "ar";
+  const textDir = isRTL ? "rtl" : "ltr";
+
+  const companyData = {
+    phone: "01 47 90 76 40",
+    fax: "01 47 90 76 48",
+    email: "administratif@asvsante.fr",
+    postalAddress: "125 avenue Louis Roche - 92230 GENNEVILLIERS",
+    website: "www.asvsante.fr",
   };
-
-  const t = translations[lang];
 
   const container = {
     width: "100%",
@@ -77,25 +91,32 @@ export default function ContactPage({ langProp = "fr" }) {
     boxSizing: "border-box",
   };
 
-  const rowStyle = {
-    fontSize: 18,
-    marginBottom: 12,
-    textAlign: "center",
-  };
-
   const labelStyle = {
-    color: "#0284c7", // bleu pour le label
-    fontWeight: 600,
-    marginRight: 6,
+    fontSize: 16,
+    fontWeight: 800,
+    color: "#0284c7",
+    marginBottom: 6,
+    textAlign: "center",
+    direction: textDir,
   };
 
   const valueStyle = {
-    color: "#0f172a", // noir pour la valeur
-    fontWeight: 400,
+    fontSize: 16,
+    color: "#0f172a",
+    marginBottom: 22,
+    textAlign: "center",
+    direction: textDir,
   };
 
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "Arial", background: "#f6fbff" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        fontFamily: "Arial",
+        background: "#f6fbff",
+        color: "#0f172a",
+      }}
+    >
       {/* NAVBAR */}
       <div
         style={{
@@ -112,12 +133,13 @@ export default function ContactPage({ langProp = "fr" }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: 16,
           }}
         >
           {/* Logo + Tagline */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: -10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src={logo} alt="Logo" style={{ height: 44 }} />
-            <div style={{ fontSize: 14, color: "#16a34a" }}>{t.tagline}</div>
+            <span style={{ fontSize: 14, color: "#16a34a" }}>{t.tagline}</span>
           </div>
 
           {/* Sélecteur de langue */}
@@ -129,7 +151,7 @@ export default function ContactPage({ langProp = "fr" }) {
               background: "#f8fafc",
               border: "1px solid #e5e7eb",
               borderRadius: 14,
-              padding: "10px 12px",
+              padding: "6px 10px",
             }}
           >
             🌐
@@ -139,50 +161,61 @@ export default function ContactPage({ langProp = "fr" }) {
               style={{
                 border: "none",
                 background: "transparent",
-                fontWeight: 600,
+                fontWeight: 700,
                 color: "#0f172a",
+                cursor: "pointer",
               }}
             >
               <option value="fr">Français🇫🇷</option>
               <option value="en">English🇬🇧</option>
               <option value="es">Español🇪🇸</option>
               <option value="pt">Português🇵🇹</option>
-              <option value="ar">العربية🇩🇿🇲🇦🇹🇳</option>
+              <option value="ar">العربية🇲🇦🇹🇳🇩🇿</option>
               <option value="tr">Türkçe🇹🇷</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* CONTENU DE LA PAGE CONTACT */}
-      <div style={{ ...container, paddingTop: 40, paddingBottom: 60 }}>
-        <h1 style={{ fontSize: 36, color: "#0284c7", marginBottom: 30, textAlign: "center" }}>
-          {t.title}
+      {/* CONTENT */}
+      <div style={{ ...container, paddingTop: 60, paddingBottom: 60 }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          <Link to="/" style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                padding: "10px 18px",
+                borderRadius: 12,
+                border: "1px solid #0284c7",
+                background: "white",
+                color: "#0284c7",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              ← {t.back}
+            </button>
+          </Link>
+        </div>
+
+        <h1
+          style={{
+            fontSize: 36,
+            color: "#0284c7",
+            marginBottom: 40,
+            textAlign: "center",
+            direction: textDir,
+          }}
+        >
+          {t.contactTitle}
         </h1>
 
-        <div style={rowStyle}>
-          <span style={labelStyle}>{t.phone}:</span>
-          <span style={valueStyle}>01 47 90 76 40</span>
-        </div>
-
-        <div style={rowStyle}>
-          <span style={labelStyle}>{t.fax}:</span>
-          <span style={valueStyle}>01 47 90 76 48</span>
-        </div>
-
-        <div style={rowStyle}>
-          <span style={labelStyle}>{t.email}:</span>
-          <span style={valueStyle}>administratif@asvsante.fr</span>
-        </div>
-
-        <div style={rowStyle}>
-          <span style={labelStyle}>{t.address}:</span>
-          <span style={valueStyle}>125 avenue Louis Roche - 92230 GENNEVILLIERS</span>
-        </div>
-
-        <div style={rowStyle}>
-          <span style={labelStyle}>{t.website}:</span>
-          <span style={valueStyle}>www.asvsante.fr</span>
+        <div>
+          {Object.keys(companyData).map((key) => (
+            <div key={key}>
+              <div style={labelStyle}>{t[key]}</div>
+              <div style={valueStyle}>{companyData[key]}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,112 +1,63 @@
-import { useRef, useState } from "react";
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import dotenv from "dotenv";
+import OpenAI from "openai";
 
-export default function App() {
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+dotenv.config();
 
-  const [recording, setRecording] = useState(false);
-  const [frenchText, setFrenchText] = useState("");
-  const [translatedText, setTranslatedText] = useState("");
-  const [targetLang, setTargetLang] = useState("en");
-  const [loading, setLoading] = useState(false);
+const app = express();
+app.use(cors());
 
-  async function startRecording() {
-    setFrenchText("");
-    setTranslatedText("");
+const upload = multer({ storage: multer.memoryStorage() });
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: "audio/webm",
+app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) => {
+  try {
+    const targetLang = req.body.targetLang || "en";
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucun fichier audio reçu" });
+    }
+
+    // 1) Transcription (Whisper)
+    const transcription = await client.audio.transcriptions.create({
+      file: new File([req.file.buffer], "audio.webm", { type: req.file.mimetype }),
+      model: "gpt-4o-mini-transcribe",
+      language: "fr",
     });
 
-    mediaRecorderRef.current = mediaRecorder;
-    chunksRef.current = [];
+    const frenchText = transcription.text;
 
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
+    // 2) Traduction (LLM)
+    const translation = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Tu es un traducteur médical. Traduction courte, claire, fidèle, sans inventer.",
+        },
+        {
+          role: "user",
+          content: `Traduis en ${targetLang} : ${frenchText}`,
+        },
+      ],
+    });
 
-    mediaRecorder.onstop = async () => {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+    const translatedText = translation.choices[0].message.content;
 
-      const formData = new FormData();
-      formData.append("audio", blob, "audio.webm");
-      formData.append("targetLang", targetLang);
-
-      setLoading(true);
-
-      try {
-        const res = await fetch("/api/transcribe-translate", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-
-        setFrenchText(data.frenchText || "");
-        setTranslatedText(data.translatedText || "");
-      } catch (err) {
-        console.error(err);
-        alert("Erreur : impossible d'appeler le serveur.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    mediaRecorder.start();
-    setRecording(true);
+    res.json({
+      frenchText,
+      translatedText,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
+});
 
-  function stopRecording() {
-    if (!mediaRecorderRef.current) return;
-    mediaRecorderRef.current.stop();
-    setRecording(false);
-  }
-
-  return (
-    <div style={{ fontFamily: "Arial", padding: 30, maxWidth: 900 }}>
-      <h1>Reconnaissance vocale + Traduction (DEG)</h1>
-
-      <div style={{ marginBottom: 15 }}>
-        <label>Langue du patient : </label>
-        <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)}>
-          <option value="fr">Français</option>
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="pt">Português</option>
-          <option value="ar">اَلْعَرَبِيَّةُ</option>
-          <option value="tr">Türkçe</option>
-        </select>
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        {!recording ? (
-          <button onClick={startRecording} style={{ padding: 10 }}>
-            🎤 Démarrer enregistrement
-          </button>
-        ) : (
-          <button onClick={stopRecording} style={{ padding: 10 }}>
-            ⏹️ Stop
-          </button>
-        )}
-      </div>
-
-      {loading && <p>⏳ Transcription + traduction en cours...</p>}
-
-      <div style={{ marginTop: 25 }}>
-        <h3>Texte reconnu (FR)</h3>
-        <div style={{ background: "#eee", padding: 15, borderRadius: 10 }}>
-          {frenchText || "—"}
-        </div>
-      </div>
-
-      <div style={{ marginTop: 25 }}>
-        <h3>Traduction</h3>
-        <div style={{ background: "#e7f0ff", padding: 15, borderRadius: 10 }}>
-          {translatedText || "—"}
-        </div>
-      </div>
-    </div>
-  );
-}
+app.listen(3001, () => console.log("Backend running on http://localhost:3001"));
