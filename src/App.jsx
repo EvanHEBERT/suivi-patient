@@ -22,7 +22,7 @@ export default function App() {
           element={<ContactPage lang={lang} setLang={setLang} />}
         />
         <Route
-          path="/call"
+          path="/call/:sessionId"
           element={<CallPage lang={lang} setLang={setLang} />}
         />
       </Routes>
