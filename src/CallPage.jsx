@@ -530,8 +530,7 @@ export default function CallPage({ lang, setLang }) {
   // ===============================
   const handleDragStart = (e) => {
     if (e.target !== localVideoRef.current) return;
-    // Prevent default browser actions like text selection or image dragging
-    e.preventDefault();
+    // On ne met pas e.preventDefault() ici pour la compatibilité avec les trackpads.
 
     const event = e.type === "touchstart" ? e.touches[0] : e;
     const pipEl = localVideoRef.current;
