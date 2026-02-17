@@ -1,24 +1,56 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
 
 export default function CallPage({ lang, setLang }) {
   const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const [searchParams] = useSearchParams();
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const timeoutRef = useRef(null);
-  const pageRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const aiIntervalRef = useRef(null);
+
+  const videoZoneRef = useRef(null);
 
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
   const [isHovered, setIsHovered] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+
+  // ---- ROLE depuis backend ----
+  const [role, setRole] = useState(searchParams.get("role") === "tech" ? "tech" : "patient");
+  const isTech = role === "tech";
+
+  const [loadingRole, setLoadingRole] = useState(!!sessionId);
+  const [roleError, setRoleError] = useState(null);
+
+  // --- IA DEMO STATES (mode technicien) ---
+  const [transcript, setTranscript] = useState([
+    { who: "Patient", text: "Bonjour, j’ai un souci avec mon appareil..." },
+    { who: "Technicien", text: "D’accord, depuis quand avez-vous le problème ?" },
+  ]);
+
+  const [suggestedQuestions, setSuggestedQuestions] = useState([
+    "Quel est le modèle exact de l’appareil ?",
+    "Le problème est-il constant ou intermittent ?",
+    "Un message d’erreur apparaît-il ?",
+    "Avez-vous déjà essayé de redémarrer complètement ?",
+  ]);
+
+  const [checklist, setChecklist] = useState([
+    { label: "Vérifier alimentation / batterie", done: false },
+    { label: "Redémarrage complet effectué", done: false },
+    { label: "Test de connexion réseau", done: false },
+    { label: "Vérifier câbles / accessoires", done: false },
+  ]);
 
   const translations = {
     fr: {
       tagline: "Votre partenaire santé de confiance",
-      title: "Appel vidéo",
       hangup: "Raccrocher",
       cameraOn: "Caméra ON",
       cameraOff: "Caméra OFF",
@@ -26,10 +58,19 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Micro OFF",
       fullscreenOn: "Plein écran",
       fullscreenOff: "Quitter Plein Écran",
+      techMode: "Mode technicien",
+      aiPanel: "Assistant IA",
+      transcription: "Transcription (démo)",
+      questions: "Questions suggérées",
+      checklist: "Checklist dépannage",
+      loading: "Chargement…",
+      roleError: "Impossible de récupérer votre rôle pour cette session.",
+      startAI: "Activer l'IA",
+      stopAI: "Arrêter l'IA",
+      listening: "Analyse en cours...",
     },
     en: {
       tagline: "Your trusted health partner",
-      title: "Video call",
       hangup: "Hang up",
       cameraOn: "Camera ON",
       cameraOff: "Camera OFF",
@@ -37,50 +78,96 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Mic OFF",
       fullscreenOn: "Fullscreen",
       fullscreenOff: "Exit Fullscreen",
+      techMode: "Technician Mode",
+      aiPanel: "AI Assistant",
+      transcription: "Transcription (demo)",
+      questions: "Suggested Questions",
+      checklist: "Troubleshooting Checklist",
+      loading: "Loading...",
+      roleError: "Unable to retrieve your role for this session.",
+      startAI: "Start AI",
+      stopAI: "Stop AI",
+      listening: "Listening...",
     },
     es: {
       tagline: "Tu socio de salud de confianza",
-      title: "Videollamada",
       hangup: "Colgar",
       cameraOn: "Cámara ON",
       cameraOff: "Cámara OFF",
       micOn: "Micrófono ON",
       micOff: "Micrófono OFF",
-      fullscreenOn: "Pantalla Completa",
-      fullscreenOff: "Salir de Pantalla Completa",
+      fullscreenOn: "Pantalla completa",
+      fullscreenOff: "Salir de pantalla completa",
+      techMode: "Modo Técnico",
+      aiPanel: "Asistente IA",
+      transcription: "Transcripción (demo)",
+      questions: "Preguntas sugeridas",
+      checklist: "Lista de verificación",
+      loading: "Cargando...",
+      roleError: "No se pudo recuperar su rol para esta sesión.",
+      startAI: "Activar IA",
+      stopAI: "Detener IA",
+      listening: "Escuchando...",
     },
     pt: {
       tagline: "Seu parceiro de saúde de confiança",
-      title: "Chamada de vídeo",
       hangup: "Desligar",
       cameraOn: "Câmera ON",
       cameraOff: "Câmera OFF",
-      micOn: "Micro ON",
-      micOff: "Micro OFF",
-      fullscreenOn: "Tela Cheia",
-      fullscreenOff: "Sair da Tela Cheia",
+      micOn: "Microfone ON",
+      micOff: "Microfone OFF",
+      fullscreenOn: "Tela cheia",
+      fullscreenOff: "Sair da tela cheia",
+      techMode: "Modo Técnico",
+      aiPanel: "Assistente IA",
+      transcription: "Transcrição (demo)",
+      questions: "Perguntas sugeridas",
+      checklist: "Lista de verificação",
+      loading: "Carregando...",
+      roleError: "Não foi possível recuperar sua função para esta sessão.",
+      startAI: "Ativar IA",
+      stopAI: "Parar IA",
+      listening: "Ouvindo...",
     },
     ar: {
       tagline: "شريكك الصحي الموثوق",
-      title: "مكالمة فيديو",
       hangup: "إنهاء المكالمة",
-      cameraOn: "الكاميرا تعمل",
-      cameraOff: "الكاميرا متوقفة",
-      micOn: "الميكروفون يعمل",
-      micOff: "الميكروفون متوقف",
+      cameraOn: "كاميرا مشغلة",
+      cameraOff: "كاميرا مطفأة",
+      micOn: "ميكروفون مشغل",
+      micOff: "ميكروفون مطفأ",
       fullscreenOn: "ملء الشاشة",
-      fullscreenOff: "الخروج من ملء الشاشة",
+      fullscreenOff: "خروج من ملء الشاشة",
+      techMode: "وضع الفني",
+      aiPanel: "مساعد الذكاء الاصطناعي",
+      transcription: "نسخ (تجريبي)",
+      questions: "أسئلة مقترحة",
+      checklist: "قائمة التحقق",
+      loading: "جار التحميل...",
+      roleError: "تعذر استرداد دورك لهذه الجلسة.",
+      startAI: "تفعيل الذكاء الاصطناعي",
+      stopAI: "إيقاف الذكاء الاصطناعي",
+      listening: "جاري الاستماع...",
     },
     tr: {
       tagline: "Güvenilir sağlık ortağınız",
-      title: "Görüntülü arama",
       hangup: "Kapat",
-      cameraOn: "Kamera ON",
-      cameraOff: "Kamera OFF",
-      micOn: "Mikrofon ON",
-      micOff: "Mikrofon OFF",
+      cameraOn: "Kamera AÇIK",
+      cameraOff: "Kamera KAPALI",
+      micOn: "Mikrofon AÇIK",
+      micOff: "Mikrofon KAPALI",
       fullscreenOn: "Tam Ekran",
       fullscreenOff: "Tam Ekrandan Çık",
+      techMode: "Teknisyen Modu",
+      aiPanel: "YZ Asistanı",
+      transcription: "Transkripsiyon (demo)",
+      questions: "Önerilen Sorular",
+      checklist: "Sorun Giderme Listesi",
+      loading: "Yükleniyor...",
+      roleError: "Bu oturum için rolünüz alınamadı.",
+      startAI: "YZ'yi Başlat",
+      stopAI: "YZ'yi Durdur",
+      listening: "Dinleniyor...",
     },
   };
 
@@ -88,6 +175,60 @@ export default function CallPage({ lang, setLang }) {
   const isRTL = lang === "ar";
   const textDir = isRTL ? "rtl" : "ltr";
 
+  // ===============================
+  // 1) Récupération role depuis backend
+  // ===============================
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRole() {
+      try {
+        setLoadingRole(true);
+        setRoleError(null);
+
+        // Exemple : backend sur même domaine
+        // Si tu utilises cookies: credentials: "include"
+        const res = await fetch(`/api/sessions/${sessionId}/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (!data.role || (data.role !== "patient" && data.role !== "tech")) {
+          throw new Error("Invalid role returned by server");
+        }
+
+        if (!cancelled) {
+          setRole(data.role);
+        }
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) {
+          setRoleError(t.roleError);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingRole(false);
+        }
+      }
+    }
+
+    if (sessionId) fetchRole();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // ===============================
+  // 2) Gestion caméra/micro
+  // ===============================
   function stopStreamFully() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -105,19 +246,17 @@ export default function CallPage({ lang, setLang }) {
   async function startCameraAndMic() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" }, // caméra frontale
-        audio: true, // micro
+        video: { facingMode: "user" },
+        audio: true,
       });
 
       streamRef.current = stream;
 
-      // Video
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
 
-      // Etat des tracks
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
 
@@ -125,7 +264,6 @@ export default function CallPage({ lang, setLang }) {
       setMicOn(!!audioTrack);
     } catch (err) {
       console.error(err);
-
       setCameraOn(false);
       setMicOn(false);
     }
@@ -140,7 +278,7 @@ export default function CallPage({ lang, setLang }) {
     if (cameraOn) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.stop(); // Éteint réellement la caméra (lumière OFF)
+        videoTrack.stop();
         streamRef.current.removeTrack(videoTrack);
       }
       setCameraOn(false);
@@ -153,7 +291,6 @@ export default function CallPage({ lang, setLang }) {
         streamRef.current.addTrack(newVideoTrack);
         setCameraOn(true);
 
-        // Si le micro est coupé, le stream était vide/inactif. On force la mise à jour de la vidéo.
         if (!micOn && videoRef.current) {
           videoRef.current.srcObject = streamRef.current;
         }
@@ -169,7 +306,7 @@ export default function CallPage({ lang, setLang }) {
     if (micOn) {
       const audioTrack = streamRef.current.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.stop(); // Arrête le matériel micro
+        audioTrack.stop();
         streamRef.current.removeTrack(audioTrack);
       }
       setMicOn(false);
@@ -196,11 +333,101 @@ export default function CallPage({ lang, setLang }) {
   }
 
   useEffect(() => {
-    startCameraAndMic();
+    // On démarre la caméra uniquement quand on sait le rôle (optionnel)
+    if (!loadingRole && role) {
+      startCameraAndMic();
+    }
+
     return () => stopStreamFully();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadingRole, role]);
 
+  // ===============================
+  // 2b) Logique IA (Enregistrement & Analyse)
+  // ===============================
+  useEffect(() => {
+    // Nettoyage si on désactive ou quitte
+    if (!aiActive || !isTech) {
+      if (aiIntervalRef.current) clearInterval(aiIntervalRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
+    // Fonction pour démarrer une boucle d'enregistrement
+    const startRecordingLoop = () => {
+      if (!streamRef.current) return;
+
+      // On utilise le flux local pour la démo (en prod: mixer avec flux distant)
+      try {
+        const recorder = new MediaRecorder(streamRef.current);
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = async (e) => {
+          if (e.data.size > 0) {
+            // Envoi au backend
+            const formData = new FormData();
+            formData.append("audio", e.data, "chunk.webm");
+
+            try {
+              // Adapter l'URL si besoin (ex: http://localhost:3001/api/...)
+              const res = await fetch("http://localhost:3001/api/analyze-conversation", {
+                method: "POST",
+                body: formData,
+              });
+              const data = await res.json();
+
+              if (data.text) {
+                setTranscript((prev) => [...prev.slice(-4), { who: "IA (Entendu)", text: data.text }]);
+              }
+              if (data.questions && data.questions.length > 0) {
+                setSuggestedQuestions(data.questions);
+              }
+              if (data.checklist && data.checklist.length > 0) {
+                // On ajoute les nouvelles items de checklist sans doublons simples
+                setChecklist((prev) => {
+                  const newItems = data.checklist.filter(
+                    (newItem) => !prev.some((p) => p.label === newItem.label)
+                  );
+                  return [...prev, ...newItems];
+                });
+              }
+            } catch (err) {
+              console.error("Erreur envoi audio IA", err);
+            }
+          }
+        };
+
+        // Astuce: On démarre et on arrête le recorder toutes les 5s pour forcer l'émission d'un blob valide avec header
+        recorder.start();
+
+        aiIntervalRef.current = setInterval(() => {
+          if (recorder.state === "recording") {
+            recorder.stop();
+            // Petit délai pour laisser le stop finir avant de restart (optionnel mais plus sûr)
+            setTimeout(() => {
+              if (aiActive) recorder.start();
+            }, 100);
+          }
+        }, 5000); // Analyse toutes les 5 secondes
+      } catch (err) {
+        console.error("Impossible de démarrer MediaRecorder", err);
+      }
+    };
+
+    if (micOn) {
+      startRecordingLoop();
+    }
+
+    return () => {
+      if (aiIntervalRef.current) clearInterval(aiIntervalRef.current);
+    };
+  }, [aiActive, isTech, micOn]);
+
+  // ===============================
+  // 3) Fullscreen
+  // ===============================
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -212,35 +439,104 @@ export default function CallPage({ lang, setLang }) {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  function handleMouseMove() {
-    setIsHovered(true);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      setIsHovered(false);
-    }, 2000);
-  }
-
-  function toggleFullscreen() {
-    if (!pageRef.current) return;
+  function toggleFullscreenVideoZone() {
+    if (!videoZoneRef.current) return;
 
     if (!document.fullscreenElement) {
-      pageRef.current.requestFullscreen().catch((err) => {
+      videoZoneRef.current.requestFullscreen().catch((err) => {
         console.error(
           `Error attempting to enable full-screen mode: ${err.message} (${err.name})`
         );
       });
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen();
     }
   }
 
+  function handleMouseMove() {
+    setIsHovered(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    timeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 2000);
+  }
+
+  function toggleChecklistItem(index) {
+    setChecklist((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, done: !item.done } : item))
+    );
+  }
+
+  // ===============================
+  // UI loading role
+  // ===============================
+  if (loadingRole) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          width: "100vw",
+          background: "#0b1220",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "Arial",
+          fontWeight: 900,
+          fontSize: 18,
+        }}
+      >
+        {t.loading}
+      </div>
+    );
+  }
+
+  if (roleError) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          width: "100vw",
+          background: "#0b1220",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "Arial",
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 12 }}>
+            {roleError}
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              padding: "12px 18px",
+              borderRadius: 14,
+              border: "none",
+              background: "#ef4444",
+              color: "white",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            Retour
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ===============================
+  // UI principale
+  // ===============================
   return (
     <div
-      ref={pageRef}
+      dir={textDir}
       style={{
         position: "relative",
         height: "100vh",
@@ -249,6 +545,7 @@ export default function CallPage({ lang, setLang }) {
         fontFamily: "Arial",
         overflow: "hidden",
         cursor: isHovered ? "default" : "none",
+        display: isTech ? "flex" : "block",
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
@@ -256,101 +553,127 @@ export default function CallPage({ lang, setLang }) {
         setIsHovered(false);
       }}
     >
-      {/* VIDEO PLEIN ÉCRAN (ARRIÈRE-PLAN) */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: "scaleX(-1)",
-          zIndex: 0,
-        }}
-      />
-
-      {/* INTERFACE SUPERPOSÉE (VISIBLE AU SURVOL) */}
+      {/* ZONE VIDEO */}
       <div
+        ref={videoZoneRef}
         style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          opacity: isHovered ? 1 : 0,
-          transition: "opacity 0.3s ease-in-out",
-          pointerEvents: isHovered ? "auto" : "none",
-          background: isHovered ? "rgba(0,0,0,0.3)" : "transparent",
+          position: "relative",
+          width: isTech ? "70%" : "100%",
+          height: "100%",
+          overflow: "hidden",
+          background: "black",
         }}
       >
-        {/* NAVBAR (HAUT) */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transform: "scaleX(-1)",
+            zIndex: 0,
+          }}
+        />
+
+        {/* Overlay */}
         <div
           style={{
-            padding: "16px 24px",
-            background: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(10px)",
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
             display: "flex",
-            alignItems: "center",
+            flexDirection: "column",
             justifyContent: "space-between",
+            opacity: isHovered ? 1 : 0,
+            transition: "opacity 0.3s ease-in-out",
+            pointerEvents: isHovered ? "auto" : "none",
+            background: isHovered ? "rgba(0,0,0,0.3)" : "transparent",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src={logo} alt="Logo" style={{ height: 40 }} />
-            <div style={{ fontSize: 14, color: "#1e9771" }}>
-              {t.tagline}
+          {/* Navbar */}
+          <div
+            style={{
+              padding: "16px 24px",
+              background: "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <img src={logo} alt="Logo" style={{ height: 40 }} />
+              <div style={{ fontSize: 14, color: "#1e9771" }}>
+                {t.tagline}
+              </div>
+
+              {isTech && (
+                <div
+                  style={{
+                    marginLeft: 12,
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    background: "#0f172a",
+                    color: "white",
+                    fontWeight: 900,
+                    fontSize: 12,
+                  }}
+                >
+                  🛠️ {t.techMode}
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: "rgba(255,255,255,0.5)",
+                border: "1px solid #e5e7eb",
+                borderRadius: 14,
+                padding: "8px 12px",
+              }}
+            >
+              🌐
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+              >
+                <option value="fr">Français🇫🇷</option>
+                <option value="en">English🇬🇧</option>
+                <option value="es">Español🇪🇸</option>
+                <option value="pt">Português🇵🇹</option>
+                <option value="ar">العربية🇲🇦🇹🇳🇩🇿</option>
+                <option value="tr">Türkçe🇹🇷</option>
+              </select>
             </div>
           </div>
 
+          {/* Boutons bas */}
           <div
             style={{
+              padding: "40px",
               display: "flex",
-              alignItems: "center",
-              gap: 10,
-              background: "rgba(255,255,255,0.5)",
-              border: "1px solid #e5e7eb",
-              borderRadius: 14,
-              padding: "8px 12px",
+              justifyContent: "center",
+              gap: 16,
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
             }}
           >
-            🌐
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              style={{
-                border: "none",
-                background: "transparent",
-                fontWeight: 600,
-                color: "#0f172a",
-                cursor: "pointer",
-                outline: "none",
-              }}
-            >
-              <option value="fr">Français🇫🇷</option>
-              <option value="en">English🇬🇧</option>
-              <option value="es">Español🇪🇸</option>
-              <option value="pt">Português🇵🇹</option>
-              <option value="ar">العربية🇲🇦🇹🇳🇩🇿</option>
-              <option value="tr">Türkçe🇹🇷</option>
-            </select>
-          </div>
-        </div>
-
-        {/* BOUTONS (BAS) */}
-        <div
-          style={{
-            padding: "40px",
-            display: "flex",
-            justifyContent: "center",
-            gap: 16,
-            background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
-          }}
-        >
-            {/* Caméra */}
             <button
               onClick={toggleCamera}
               style={{
@@ -368,7 +691,6 @@ export default function CallPage({ lang, setLang }) {
               {cameraOn ? t.cameraOn : t.cameraOff}
             </button>
 
-            {/* Micro */}
             <button
               onClick={toggleMic}
               style={{
@@ -386,11 +708,10 @@ export default function CallPage({ lang, setLang }) {
               {micOn ? t.micOn : t.micOff}
             </button>
 
-            {/* Plein écran */}
             <button
-              onClick={toggleFullscreen}
+              onClick={toggleFullscreenVideoZone}
               style={{
-                padding: "12px 18px",
+                padding: "12px",
                 borderRadius: 14,
                 border: "none",
                 background: "#8b5cf6",
@@ -402,7 +723,7 @@ export default function CallPage({ lang, setLang }) {
                 justifyContent: "center",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
-              title={isFullscreen ? t.fullscreenOff : t.fullscreenOn}
+              title={isFullscreen ? t.fullscreaenOff : t.fullscreenOn}
             >
               {isFullscreen ? (
                 <svg
@@ -412,7 +733,7 @@ export default function CallPage({ lang, setLang }) {
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="3"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -426,7 +747,7 @@ export default function CallPage({ lang, setLang }) {
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="3"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -435,7 +756,6 @@ export default function CallPage({ lang, setLang }) {
               )}
             </button>
 
-            {/* Raccrocher */}
             <button
               onClick={hangUp}
               style={{
@@ -452,8 +772,135 @@ export default function CallPage({ lang, setLang }) {
             >
               {t.hangup}
             </button>
+
+            {/* Bouton IA pour Technicien */}
+            {isTech && (
+              <button
+                onClick={() => setAiActive(!aiActive)}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: 14,
+                  border: "none",
+                  background: aiActive ? "#8b5cf6" : "#1e293b",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  minWidth: 160,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  border: aiActive ? "2px solid #c4b5fd" : "none"
+                }}
+              >
+                {aiActive ? "✨ " + t.stopAI : "✨ " + t.startAI}
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Panneau technicien */}
+      {isTech && (
+        <div
+          style={{
+            width: "30%",
+            height: "100%",
+            background: "rgba(15, 23, 42, 0.98)",
+            color: "white",
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            overflowY: "auto",
+            borderLeft: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <div style={{ fontWeight: 900, fontSize: 18 }}>
+            🤖 {t.aiPanel} 
+            {aiActive && (
+              <span style={{ fontSize: 12, color: "#4ade80", marginLeft: 10, animation: "pulse 1.5s infinite" }}>● {t.listening}</span>
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>
+              🎧 {t.transcription}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {transcript.map((line, idx) => (
+                <div key={idx} style={{ fontSize: 13, lineHeight: 1.35 }}>
+                  <span style={{ fontWeight: 900 }}>{line.who} :</span>{" "}
+                  <span style={{ opacity: 0.9 }}>{line.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>
+              ❓ {t.questions}
+            </div>
+
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+              {suggestedQuestions.map((q, idx) => (
+                <li key={idx} style={{ marginBottom: 8, opacity: 0.92 }}>
+                  {q}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 14,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>
+              ✅ {t.checklist}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {checklist.map((item, idx) => (
+                <label
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    fontSize: 13,
+                    alignItems: "center",
+                    cursor: "pointer",
+                    opacity: item.done ? 0.6 : 1,
+                    textDecoration: item.done ? "line-through" : "none",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.done}
+                    onChange={() => toggleChecklistItem(idx)}
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

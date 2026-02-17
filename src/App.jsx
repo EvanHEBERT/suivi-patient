@@ -38,8 +38,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "Bienvenue",
         heroSubtitle:
           "Nous nous engageons à fournir des soins de santé de qualité supérieure avec compassion et professionnalisme.",
-        btnStart: "Commencer",
         btnContact: "Contactez-nous",
+        btnPatient: "Démarrer (Patient)",
+        btnTech: "Démarrer (Technicien)",
         servicesTitle: "Nos Services",
         s1Title: "Soins de Qualité",
         s1Desc: "Des soins personnalisés adaptés à vos besoins",
@@ -53,8 +54,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "Welcome",
         heroSubtitle:
           "We are committed to delivering high-quality healthcare with compassion and professionalism.",
-        btnStart: "Start",
         btnContact: "Contact us",
+        btnPatient: "Start (Patient)",
+        btnTech: "Start (Technician)",
         servicesTitle: "Our Services",
         s1Title: "Quality Care",
         s1Desc: "Personalized care tailored to your needs",
@@ -68,8 +70,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "Bienvenido",
         heroSubtitle:
           "Nos comprometemos a ofrecer atención médica de alta calidad con compasión y profesionalismo.",
-        btnStart: "Comenzar",
         btnContact: "Contáctanos",
+        btnPatient: "Empezar (Paciente)",
+        btnTech: "Empezar (Técnico)",
         servicesTitle: "Nuestros Servicios",
         s1Title: "Atención de Calidad",
         s1Desc: "Atención personalizada adaptada a tus necesidades",
@@ -83,8 +86,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "Bem-vindo",
         heroSubtitle:
           "Estamos comprometidos em fornecer cuidados de saúde de alta qualidade com compaixão e profissionalismo.",
-        btnStart: "Começar",
         btnContact: "Fale conosco",
+        btnPatient: "Começar (Paciente)",
+        btnTech: "Começar (Técnico)",
         servicesTitle: "Nossos Serviços",
         s1Title: "Cuidados de Qualidade",
         s1Desc: "Cuidados personalizados adaptados às suas necessidades",
@@ -98,8 +102,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "مرحباً بك",
         heroSubtitle:
           "نلتزم بتقديم رعاية صحية عالية الجودة بكل تعاطف واحترافية.",
-        btnStart: "ابدأ",
         btnContact: "تواصل معنا",
+        btnPatient: "بدء (مريض)",
+        btnTech: "بدء (فني)",
         servicesTitle: "خدماتنا",
         s1Title: "رعاية عالية الجودة",
         s1Desc: "رعاية مخصصة تناسب احتياجاتك",
@@ -113,8 +118,9 @@ function HomePage({ lang, setLang }) {
         heroTitle: "Hoş geldiniz",
         heroSubtitle:
           "Şefkat ve profesyonellikle yüksek kaliteli sağlık hizmeti sunmayı taahhüt ediyoruz.",
-        btnStart: "Başla",
         btnContact: "Bize ulaşın",
+        btnPatient: "Başlat (Hasta)",
+        btnTech: "Başlat (Teknisyen)",
         servicesTitle: "Hizmetlerimiz",
         s1Title: "Kaliteli Bakım",
         s1Desc: "İhtiyaçlarınıza göre kişiselleştirilmiş bakım",
@@ -273,9 +279,9 @@ function HomePage({ lang, setLang }) {
             {t.heroSubtitle}
           </p>
 
-          <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-            {/* Commencer -> page appel */}
-            <Link to="/call">
+          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+            {/* Bouton Patient */}
+            <Link to="/call" style={{ textDecoration: 'none' }}>
               <button
                 style={{
                   padding: "12px 24px",
@@ -287,11 +293,29 @@ function HomePage({ lang, setLang }) {
                   cursor: "pointer",
                 }}
               >
-                {t.btnStart}
+                {t.btnPatient}
               </button>
             </Link>
 
-            <Link to="/contact">
+            {/* Bouton Technicien */}
+            <Link to="/call?role=tech" style={{ textDecoration: 'none' }}>
+              <button
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 12,
+                  border: "1px solid #0f172a",
+                  background: "#0f172a",
+                  color: "white",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {t.btnTech}
+              </button>
+            </Link>
+
+            {/* Bouton Contact */}
+            <Link to="/contact" style={{ textDecoration: 'none' }}>
               <button
                 style={{
                   padding: "12px 24px",
@@ -311,7 +335,7 @@ function HomePage({ lang, setLang }) {
       </div>
 
       {/* SERVICES */}
-      <div style={{ padding: "60px 0" }}>
+      <div style={{ padding: "60px 0"                                 }}>
         <div style={container}>
           <h2
             style={{
