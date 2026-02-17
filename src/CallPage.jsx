@@ -20,6 +20,13 @@ export default function CallPage({ lang, setLang }) {
   const [isHovered, setIsHovered] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiActive, setAiActive] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // ---- ROLE depuis backend ----
   const [role, setRole] = useState(searchParams.get("role") === "tech" ? "tech" : "patient");
@@ -371,7 +378,7 @@ export default function CallPage({ lang, setLang }) {
             formData.append("audio", e.data, "chunk.webm");
 
             try {
-              const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+              const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
               const res = await fetch(`${API_URL}/api/analyze-conversation`, {
                 method: "POST",
                 body: formData,
@@ -544,10 +551,12 @@ export default function CallPage({ lang, setLang }) {
         background: "black",
         fontFamily: "Arial",
         overflow: "hidden",
-        cursor: isHovered ? "default" : "none",
+        cursor: isHovered || isMobile ? "default" : "none",
         display: isTech ? "flex" : "block",
+        flexDirection: isTech && isMobile ? "column" : "row",
       }}
       onMouseMove={handleMouseMove}
+      onClick={handleMouseMove}
       onMouseLeave={() => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setIsHovered(false);
@@ -558,8 +567,8 @@ export default function CallPage({ lang, setLang }) {
         ref={videoZoneRef}
         style={{
           position: "relative",
-          width: isTech ? "70%" : "100%",
-          height: "100%",
+          width: isTech && !isMobile ? "70%" : "100%",
+          height: isTech && isMobile ? "50%" : "100%",
           overflow: "hidden",
           background: "black",
         }}
@@ -589,10 +598,10 @@ export default function CallPage({ lang, setLang }) {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            opacity: isHovered ? 1 : 0,
+            opacity: isHovered || isMobile ? 1 : 0,
             transition: "opacity 0.3s ease-in-out",
-            pointerEvents: isHovered ? "auto" : "none",
-            background: isHovered ? "rgba(0,0,0,0.3)" : "transparent",
+            pointerEvents: isHovered || isMobile ? "auto" : "none",
+            background: isHovered || isMobile ? "rgba(0,0,0,0.3)" : "transparent",
           }}
         >
           {/* Navbar */}
@@ -666,10 +675,11 @@ export default function CallPage({ lang, setLang }) {
           {/* Boutons bas */}
           <div
             style={{
-              padding: "40px",
+              padding: isMobile ? "20px 10px" : "40px",
               display: "flex",
               justifyContent: "center",
-              gap: 16,
+              gap: isMobile ? 8 : 16,
+              flexWrap: "wrap",
               background:
                 "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
             }}
@@ -684,7 +694,7 @@ export default function CallPage({ lang, setLang }) {
                 color: "white",
                 fontWeight: 900,
                 cursor: "pointer",
-                minWidth: 160,
+                minWidth: isMobile ? "auto" : 160,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
             >
@@ -701,7 +711,7 @@ export default function CallPage({ lang, setLang }) {
                 color: "white",
                 fontWeight: 900,
                 cursor: "pointer",
-                minWidth: 160,
+                minWidth: isMobile ? "auto" : 160,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
             >
@@ -766,7 +776,7 @@ export default function CallPage({ lang, setLang }) {
                 color: "white",
                 fontWeight: 900,
                 cursor: "pointer",
-                minWidth: 160,
+                minWidth: isMobile ? "auto" : 160,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
             >
@@ -785,7 +795,7 @@ export default function CallPage({ lang, setLang }) {
                   color: "white",
                   fontWeight: 900,
                   cursor: "pointer",
-                  minWidth: 160,
+                  minWidth: isMobile ? "auto" : 160,
                   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                   border: aiActive ? "2px solid #c4b5fd" : "none"
                 }}
@@ -801,8 +811,8 @@ export default function CallPage({ lang, setLang }) {
       {isTech && (
         <div
           style={{
-            width: "30%",
-            height: "100%",
+            width: isMobile ? "100%" : "30%",
+            height: isMobile ? "50%" : "100%",
             background: "rgba(15, 23, 42, 0.98)",
             color: "white",
             padding: 16,
@@ -810,7 +820,8 @@ export default function CallPage({ lang, setLang }) {
             flexDirection: "column",
             gap: 12,
             overflowY: "auto",
-            borderLeft: "1px solid rgba(255,255,255,0.08)",
+            borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)",
+            borderTop: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none",
           }}
         >
           <div style={{ fontWeight: 900, fontSize: 18 }}>

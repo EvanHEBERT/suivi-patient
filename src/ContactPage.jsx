@@ -134,6 +134,7 @@ export default function ContactPage({ lang, setLang }) {
             justifyContent: "space-between",
             alignItems: "center",
             gap: 16,
+            flexWrap: "wrap",
           }}
         >
           {/* Logo + Tagline */}

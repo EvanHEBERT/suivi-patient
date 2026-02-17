@@ -185,6 +185,7 @@ function HomePage({ lang, setLang }) {
             justifyContent: "space-between",
             alignItems: "center",
             gap: 16,
+            flexWrap: "wrap",
           }}
         >
           {/* Logo + Tagline */}
@@ -231,12 +232,12 @@ function HomePage({ lang, setLang }) {
       {/* HERO */}
       <div
         style={{
-          minHeight: 520,
-          height: "calc(100vh - 78px)",
+          minHeight: "calc(100vh - 78px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           paddingTop: 10,
+          paddingBottom: 40,
         }}
       >
         <div

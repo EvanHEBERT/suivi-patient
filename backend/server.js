@@ -127,6 +127,70 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
   }
 });
 
+// =============================
+// 3) ROUTE ANALYSE CONVERSATION (IA)
+// =============================
+app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Aucun fichier audio" });
+    }
+
+    // 1. Transcription
+    const transcription = await client.audio.transcriptions.create({
+      file: new Blob([req.file.buffer], { type: req.file.mimetype }),
+      model: "whisper-1",
+      language: "fr",
+    });
+
+    const text = transcription.text;
+    
+    // Si pas assez de texte, on ignore
+    if (!text || text.length < 5) {
+      return res.json({ text: "", questions: [], checklist: [] });
+    }
+
+    // 2. Analyse LLM pour extraire questions et checklist
+    const systemPrompt = `
+      Tu es un assistant IA expert pour un technicien de support technique.
+      Analyse ce fragment de conversation.
+      
+      Tâche :
+      1. Suggère 3 questions pertinentes que le technicien devrait poser maintenant pour avancer le diagnostic.
+      2. Suggère des actions pour la checklist de dépannage (si pertinent).
+      
+      Réponds UNIQUEMENT au format JSON :
+      {
+        "questions": ["question 1", "question 2", "question 3"],
+        "checklist": [
+          { "label": "Action suggérée 1", "done": false },
+          { "label": "Action suggérée 2", "done": false }
+        ]
+      }
+    `;
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Transcription: "${text}"` },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const analysis = JSON.parse(completion.choices[0].message.content);
+
+    res.json({
+      text,
+      questions: analysis.questions || [],
+      checklist: analysis.checklist || [],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur analyse IA" });
+  }
+});
+
 // -----------------------------
 // Lancement du serveur
 // -----------------------------

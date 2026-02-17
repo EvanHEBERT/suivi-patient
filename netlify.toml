@@ -1,0 +1,6 @@
+[build]
+  # On laisse "base" vide car le package.json est à la racine
+  base = ""
+  # Dossier généré par Vite
+  publish = "dist"
+  command = "npm run build"
