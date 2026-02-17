@@ -22,6 +22,7 @@ export default function CallPage({ lang, setLang }) {
   const [aiActive, setAiActive] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
+  const [isPipHovered, setIsPipHovered] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -639,19 +640,22 @@ export default function CallPage({ lang, setLang }) {
           autoPlay
           playsInline
           muted
+          onMouseEnter={() => !isMobile && setIsPipHovered(true)}
+          onMouseLeave={() => !isMobile && setIsPipHovered(false)}
           style={{
             position: "absolute",
             top: isMobile ? "calc(max(10px, env(safe-area-inset-top)) + 60px)" : "20px",
             right: "20px",
-            width: "clamp(100px, 20vw, 160px)",
+            width: isMobile ? "clamp(100px, 25vw, 140px)" : "clamp(160px, 20vw, 240px)",
             borderRadius: "12px",
             border: "2px solid rgba(255,255,255,0.7)",
             boxShadow: "0 5px 15px rgba(0,0,0,0.4)",
-            transform: "scaleX(-1)",
+            transform: `scaleX(-1) scale(${!isMobile && isPipHovered ? 1.05 : 1})`,
             zIndex: 20,
             opacity: cameraOn ? 1 : 0,
-            transition: "opacity 0.3s",
-            background: '#333'
+            transition: "opacity 0.3s, transform 0.2s ease-out",
+            background: '#333',
+            cursor: !isMobile ? 'pointer' : 'default',
           }}
         />
 
