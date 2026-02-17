@@ -1,9 +1,17 @@
 // ContactPage.jsx
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import logo from "./assets/logo.png";
 
 export default function ContactPage({ lang, setLang }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const translations = useMemo(() => {
     return {
       fr: {
@@ -120,7 +128,9 @@ export default function ContactPage({ lang, setLang }) {
       {/* NAVBAR */}
       <div
         style={{
-          height: 78,
+          minHeight: isMobile ? 60 : 78,
+          paddingTop: isMobile ? "max(10px, env(safe-area-inset-top))" : 0,
+          paddingBottom: isMobile ? 10 : 0,
           background: "white",
           borderBottom: "1px solid #e5e7eb",
           display: "flex",
@@ -133,14 +143,23 @@ export default function ContactPage({ lang, setLang }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 16,
-            flexWrap: "wrap",
+            gap: isMobile ? 8 : 16,
+            flexWrap: "nowrap",
           }}
         >
           {/* Logo + Tagline */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={logo} alt="Logo" style={{ height: 44 }} />
-            <span style={{ fontSize: 14, color: "#1e9771" }}>{t.tagline}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
+            <img src={logo} alt="Logo" style={{ height: isMobile ? 32 : 44, flexShrink: 0 }} />
+            <div style={{ 
+              fontSize: 14, 
+              color: "#1e9771",
+              display: isMobile ? "none" : "block",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
+              {t.tagline}
+            </div>
           </div>
 
           {/* Sélecteur de langue */}
@@ -148,23 +167,26 @@ export default function ContactPage({ lang, setLang }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: isMobile ? 6 : 10,
               background: "#f8fafc",
               border: "1px solid #e5e7eb",
               borderRadius: 14,
-              padding: "6px 10px",
+              padding: isMobile ? "6px 10px" : "10px 12px",
+              flexShrink: 0
             }}
           >
-            🌐
+            <span style={{ fontSize: isMobile ? 16 : 20 }}>🌐</span>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
               style={{
                 border: "none",
                 background: "transparent",
-                fontWeight: 700,
+                fontWeight: 600,
                 color: "#0f172a",
                 cursor: "pointer",
+                fontSize: isMobile ? 13 : 16,
+                maxWidth: isMobile ? 100 : "auto"
               }}
             >
               <option value="fr">Français🇫🇷</option>
