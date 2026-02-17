@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
 
@@ -23,6 +23,12 @@ export default function CallPage({ lang, setLang }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
   const [isPipHovered, setIsPipHovered] = useState(false);
+
+  // --- Draggable PiP ---
+  const [pipPosition, setPipPosition] = useState({ top: 0, left: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasBeenDragged, setHasBeenDragged] = useState(false);
+  const dragInfoRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -521,6 +527,69 @@ export default function CallPage({ lang, setLang }) {
   }
 
   // ===============================
+  // 4) Draggable PiP Handlers
+  // ===============================
+  const handleDragStart = (e) => {
+    if (e.target !== localVideoRef.current) return;
+    e.preventDefault();
+
+    const event = e.type === "touchstart" ? e.touches[0] : e;
+    const pipRect = localVideoRef.current.getBoundingClientRect();
+
+    dragInfoRef.current = {
+      offsetX: event.clientX - pipRect.left,
+      offsetY: event.clientY - pipRect.top,
+    };
+
+    setHasBeenDragged(true);
+    setIsDragging(true);
+  };
+
+  const handleDragMove = useCallback((e) => {
+    if (!dragInfoRef.current) return;
+    e.preventDefault();
+
+    const event = e.type === "touchmove" ? e.touches[0] : e;
+    const containerRect = videoZoneRef.current.getBoundingClientRect();
+
+    let newLeft = event.clientX - dragInfoRef.current.offsetX - containerRect.left;
+    let newTop = event.clientY - dragInfoRef.current.offsetY - containerRect.top;
+
+    // Boundary checks
+    const pipRect = localVideoRef.current.getBoundingClientRect();
+    if (newLeft < 0) newLeft = 0;
+    if (newTop < 0) newTop = 0;
+    if (newLeft + pipRect.width > containerRect.width) {
+      newLeft = containerRect.width - pipRect.width;
+    }
+    if (newTop + pipRect.height > containerRect.height) {
+      newTop = containerRect.height - pipRect.height;
+    }
+
+    setPipPosition({ top: newTop, left: newLeft });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    dragInfoRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener("mousemove", handleDragMove);
+      window.addEventListener("mouseup", handleDragEnd);
+      window.addEventListener("touchmove", handleDragMove, { passive: false });
+      window.addEventListener("touchend", handleDragEnd);
+    }
+    return () => {
+      window.removeEventListener("mousemove", handleDragMove);
+      window.removeEventListener("mouseup", handleDragEnd);
+      window.removeEventListener("touchmove", handleDragMove);
+      window.removeEventListener("touchend", handleDragEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  // ===============================
   // UI loading role
   // ===============================
   if (loadingRole) {
@@ -640,12 +709,21 @@ export default function CallPage({ lang, setLang }) {
           autoPlay
           playsInline
           muted
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
           onMouseEnter={() => !isMobile && setIsPipHovered(true)}
           onMouseLeave={() => !isMobile && setIsPipHovered(false)}
           style={{
             position: "absolute",
-            top: isMobile ? "calc(max(10px, env(safe-area-inset-top)) + 60px)" : "20px",
-            right: "20px",
+            ...(hasBeenDragged
+              ? {
+                  top: `${pipPosition.top}px`,
+                  left: `${pipPosition.left}px`,
+                }
+              : {
+                  top: isMobile ? "calc(max(10px, env(safe-area-inset-top)) + 60px)" : "20px",
+                  right: "20px",
+                }),
             width: isMobile ? "clamp(100px, 25vw, 140px)" : "clamp(160px, 20vw, 240px)",
             borderRadius: "12px",
             border: "2px solid rgba(255,255,255,0.7)",
@@ -653,9 +731,9 @@ export default function CallPage({ lang, setLang }) {
             transform: `scaleX(-1) scale(${!isMobile && isPipHovered ? 1.05 : 1})`,
             zIndex: 20,
             opacity: cameraOn ? 1 : 0,
-            transition: "opacity 0.3s, transform 0.2s ease-out",
+            transition: isDragging ? "none" : "opacity 0.3s, transform 0.2s ease-out",
             background: '#333',
-            cursor: !isMobile ? 'pointer' : 'default',
+            cursor: isDragging ? "grabbing" : "grab",
           }}
         />
 
