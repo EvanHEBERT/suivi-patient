@@ -651,33 +651,45 @@ export default function CallPage({ lang, setLang }) {
           {/* Navbar */}
           <div
             style={{
-              padding: "16px 24px",
+              padding: isMobile ? "10px 16px" : "16px 24px",
+              paddingTop: isMobile ? "max(10px, env(safe-area-inset-top))" : "16px", // Gestion de l'encoche (Notch)
               background: "rgba(255, 255, 255, 0.9)",
               backdropFilter: "blur(10px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              flexWrap: "nowrap", // Empêche le passage à la ligne
+              gap: 10,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <img src={logo} alt="Logo" style={{ height: 40 }} />
-              <div style={{ fontSize: 14, color: "#1e9771" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, flexShrink: 1, minWidth: 0 }}>
+              <img src={logo} alt="Logo" style={{ height: isMobile ? 32 : 40, flexShrink: 0 }} />
+              <div style={{ 
+                fontSize: 14, 
+                color: "#1e9771", 
+                display: isMobile ? "none" : "block", // On cache le slogan sur mobile pour gagner de la place
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }}>
                 {t.tagline}
               </div>
 
               {isTech && (
                 <div
                   style={{
-                    marginLeft: 12,
-                    padding: "6px 10px",
+                    marginLeft: isMobile ? 4 : 12,
+                    padding: isMobile ? "4px 8px" : "6px 10px",
                     borderRadius: 999,
                     background: "#0f172a",
                     color: "white",
                     fontWeight: 900,
-                    fontSize: 12,
+                    fontSize: isMobile ? 10 : 12,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0
                   }}
                 >
-                  🛠️ {t.techMode}
+                  🛠️ {isMobile ? "Tech" : t.techMode}
                 </div>
               )}
             </div>
@@ -686,14 +698,15 @@ export default function CallPage({ lang, setLang }) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: isMobile ? 6 : 10,
                 background: "rgba(255,255,255,0.5)",
                 border: "1px solid #e5e7eb",
                 borderRadius: 14,
-                padding: "8px 12px",
+                padding: isMobile ? "4px 8px" : "8px 12px",
+                flexShrink: 0
               }}
             >
-              🌐
+              <span style={{ fontSize: isMobile ? 16 : 20 }}>🌐</span>
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
@@ -704,6 +717,8 @@ export default function CallPage({ lang, setLang }) {
                   color: "#0f172a",
                   cursor: "pointer",
                   outline: "none",
+                  fontSize: isMobile ? 12 : 14,
+                  maxWidth: isMobile ? 80 : "auto"
                 }}
               >
                 <option value="fr">Français🇫🇷</option>
@@ -720,6 +735,7 @@ export default function CallPage({ lang, setLang }) {
           <div
             style={{
               padding: isMobile ? "20px 10px" : "40px",
+              paddingBottom: isMobile ? "max(20px, env(safe-area-inset-bottom))" : "40px", // Gestion de la barre du bas (iPhone)
               display: "flex",
               justifyContent: "center",
               gap: isMobile ? 8 : 16,
