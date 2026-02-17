@@ -7,7 +7,7 @@ export default function CallPage({ lang, setLang }) {
   const { sessionId } = useParams();
   const [searchParams] = useSearchParams();
 
-  const videoRef = useRef(null);
+  const localVideoRef = useRef(null);
   const streamRef = useRef(null);
   const timeoutRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -249,8 +249,8 @@ export default function CallPage({ lang, setLang }) {
       streamRef.current = null;
     }
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
     }
 
     setCameraOn(false);
@@ -266,9 +266,9 @@ export default function CallPage({ lang, setLang }) {
 
       streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        await localVideoRef.current.play();
       }
 
       const videoTrack = stream.getVideoTracks()[0];
@@ -305,8 +305,8 @@ export default function CallPage({ lang, setLang }) {
         streamRef.current.addTrack(newVideoTrack);
         setCameraOn(true);
 
-        if (!micOn && videoRef.current) {
-          videoRef.current.srcObject = streamRef.current;
+        if (!micOn && localVideoRef.current) {
+          localVideoRef.current.srcObject = streamRef.current;
         }
       } catch (err) {
         console.error(err);
@@ -361,8 +361,8 @@ export default function CallPage({ lang, setLang }) {
       streamRef.current.addTrack(newVideoTrack);
 
       // If the video element isn't showing the stream, set it.
-      if (videoRef.current.srcObject !== streamRef.current) {
-        videoRef.current.srcObject = streamRef.current;
+      if (localVideoRef.current.srcObject !== streamRef.current) {
+        localVideoRef.current.srcObject = streamRef.current;
       }
 
       // Update the state
@@ -614,22 +614,44 @@ export default function CallPage({ lang, setLang }) {
           width: isTech && !isMobile ? "70%" : "100%",
           height: isTech && isMobile ? "50%" : "100%",
           overflow: "hidden",
-          background: "black",
+          background: "#1c1c1c",
         }}
       >
+        {/* Placeholder for remote video */}
+        <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            color: '#555',
+            fontSize: '18px',
+            gap: 10
+        }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect><circle cx="12" cy="12" r="4"></circle></svg>
+            <span>Caméra du patient</span>
+        </div>
+
+        {/* Local video (PiP) */}
         <video
-          ref={videoRef}
+          ref={localVideoRef}
           autoPlay
           playsInline
           muted
           style={{
             position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+            top: isMobile ? "calc(max(10px, env(safe-area-inset-top)) + 60px)" : "20px",
+            right: "20px",
+            width: "clamp(100px, 20vw, 160px)",
+            borderRadius: "12px",
+            border: "2px solid rgba(255,255,255,0.7)",
+            boxShadow: "0 5px 15px rgba(0,0,0,0.4)",
             transform: "scaleX(-1)",
-            zIndex: 0,
+            zIndex: 20,
+            opacity: cameraOn ? 1 : 0,
+            transition: "opacity 0.3s",
+            background: '#333'
           }}
         />
 
