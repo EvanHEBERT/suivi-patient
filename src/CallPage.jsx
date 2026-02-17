@@ -371,8 +371,8 @@ export default function CallPage({ lang, setLang }) {
             formData.append("audio", e.data, "chunk.webm");
 
             try {
-              // Adapter l'URL si besoin (ex: http://localhost:3001/api/...)
-              const res = await fetch("http://localhost:3001/api/analyze-conversation", {
+              const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+              const res = await fetch(`${API_URL}/api/analyze-conversation`, {
                 method: "POST",
                 body: formData,
               });
