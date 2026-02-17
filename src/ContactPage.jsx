@@ -151,9 +151,8 @@ export default function ContactPage({ lang, setLang }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
             <img src={logo} alt="Logo" style={{ height: isMobile ? 32 : 44, flexShrink: 0 }} />
             <div style={{ 
-              fontSize: 14, 
+              fontSize: isMobile ? 11 : 14,
               color: "#1e9771",
-              display: isMobile ? "none" : "block",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis"
