@@ -25,9 +25,8 @@ export default function CallPage({ lang, setLang }) {
   const [isPipHovered, setIsPipHovered] = useState(false);
 
   // --- Draggable PiP ---
-  const [pipPosition, setPipPosition] = useState({ top: 0, left: 0 });
+  const [pipPosition, setPipPosition] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [hasBeenDragged, setHasBeenDragged] = useState(false);
   const dragInfoRef = useRef(null);
 
   useEffect(() => {
@@ -531,17 +530,29 @@ export default function CallPage({ lang, setLang }) {
   // ===============================
   const handleDragStart = (e) => {
     if (e.target !== localVideoRef.current) return;
+    // Prevent default browser actions like text selection or image dragging
     e.preventDefault();
 
     const event = e.type === "touchstart" ? e.touches[0] : e;
-    const pipRect = localVideoRef.current.getBoundingClientRect();
+    const pipEl = localVideoRef.current;
+    const containerRect = videoZoneRef.current.getBoundingClientRect();
+
+    let pos = pipPosition;
+    // If it's the first drag, calculate position from DOM and set it in state
+    if (!pos) {
+      const pipRect = pipEl.getBoundingClientRect();
+      pos = {
+        top: pipRect.top - containerRect.top,
+        left: pipRect.left - containerRect.left,
+      };
+      setPipPosition(pos);
+    }
 
     dragInfoRef.current = {
-      offsetX: event.clientX - pipRect.left,
-      offsetY: event.clientY - pipRect.top,
+      offsetX: event.clientX - (pos.left + containerRect.left),
+      offsetY: event.clientY - (pos.top + containerRect.top),
     };
 
-    setHasBeenDragged(true);
     setIsDragging(true);
   };
 
@@ -567,7 +578,7 @@ export default function CallPage({ lang, setLang }) {
     }
 
     setPipPosition({ top: newTop, left: newLeft });
-  }, []);
+  }, []); // Dependencies are not needed as refs are stable and state is read via closure
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
@@ -715,7 +726,7 @@ export default function CallPage({ lang, setLang }) {
           onMouseLeave={() => !isMobile && setIsPipHovered(false)}
           style={{
             position: "absolute",
-            ...(hasBeenDragged
+            ...(pipPosition
               ? {
                   top: `${pipPosition.top}px`,
                   left: `${pipPosition.left}px`,
