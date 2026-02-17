@@ -21,6 +21,7 @@ export default function CallPage({ lang, setLang }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiActive, setAiActive] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -63,6 +64,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "Caméra OFF",
       micOn: "Micro ON",
       micOff: "Micro OFF",
+      switchCamera: "Changer de caméra",
       fullscreenOn: "Plein écran",
       fullscreenOff: "Quitter Plein Écran",
       techMode: "Mode technicien",
@@ -83,6 +85,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "Camera OFF",
       micOn: "Mic ON",
       micOff: "Mic OFF",
+      switchCamera: "Switch camera",
       fullscreenOn: "Fullscreen",
       fullscreenOff: "Exit Fullscreen",
       techMode: "Technician Mode",
@@ -103,6 +106,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "Cámara OFF",
       micOn: "Micrófono ON",
       micOff: "Micrófono OFF",
+      switchCamera: "Cambiar cámara",
       fullscreenOn: "Pantalla completa",
       fullscreenOff: "Salir de pantalla completa",
       techMode: "Modo Técnico",
@@ -123,6 +127,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "Câmera OFF",
       micOn: "Microfone ON",
       micOff: "Microfone OFF",
+      switchCamera: "Mudar câmera",
       fullscreenOn: "Tela cheia",
       fullscreenOff: "Sair da tela cheia",
       techMode: "Modo Técnico",
@@ -143,6 +148,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "كاميرا مطفأة",
       micOn: "ميكروفون مشغل",
       micOff: "ميكروفون مطفأ",
+      switchCamera: "تبديل الكاميرا",
       fullscreenOn: "ملء الشاشة",
       fullscreenOff: "خروج من ملء الشاشة",
       techMode: "وضع الفني",
@@ -163,6 +169,7 @@ export default function CallPage({ lang, setLang }) {
       cameraOff: "Kamera KAPALI",
       micOn: "Mikrofon AÇIK",
       micOff: "Mikrofon KAPALI",
+      switchCamera: "Kamerayı değiştir",
       fullscreenOn: "Tam Ekran",
       fullscreenOff: "Tam Ekrandan Çık",
       techMode: "Teknisyen Modu",
@@ -253,7 +260,7 @@ export default function CallPage({ lang, setLang }) {
   async function startCameraAndMic() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+        video: { facingMode: facingMode },
         audio: true,
       });
 
@@ -292,7 +299,7 @@ export default function CallPage({ lang, setLang }) {
     } else {
       try {
         const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
+          video: { facingMode: facingMode },
         });
         const newVideoTrack = newStream.getVideoTracks()[0];
         streamRef.current.addTrack(newVideoTrack);
@@ -328,6 +335,43 @@ export default function CallPage({ lang, setLang }) {
       } catch (err) {
         console.error(err);
       }
+    }
+  }
+
+  async function switchCamera() {
+    if (!streamRef.current || !isMobile) return;
+
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+
+    // Stop the current video track to release the camera
+    const oldVideoTrack = streamRef.current.getVideoTracks()[0];
+    if (oldVideoTrack) {
+      oldVideoTrack.stop();
+      streamRef.current.removeTrack(oldVideoTrack);
+    }
+
+    try {
+      // Get a new stream with the new facing mode
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      // Add the new track to our main stream
+      streamRef.current.addTrack(newVideoTrack);
+
+      // If the video element isn't showing the stream, set it.
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+
+      // Update the state
+      setFacingMode(newFacingMode);
+      setCameraOn(true); // Ensure camera is marked as on
+    } catch (err) {
+      console.error("Error switching camera:", err);
+      // If it fails, turn the camera off in the UI
+      setCameraOn(false);
     }
   }
 
@@ -700,6 +744,41 @@ export default function CallPage({ lang, setLang }) {
             >
               {cameraOn ? t.cameraOn : t.cameraOff}
             </button>
+
+            {isMobile && (
+              <button
+                onClick={switchCamera}
+                style={{
+                  padding: "12px",
+                  borderRadius: 14,
+                  border: "none",
+                  background: "#475569",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                }}
+                title={t.switchCamera}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4" />
+                  <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
+                </svg>
+              </button>
+            )}
 
             <button
               onClick={toggleMic}
