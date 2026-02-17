@@ -42,6 +42,13 @@ const client = new OpenAI({
 });
 
 // =============================
+// 0) ROUTE RACINE (Health Check)
+// =============================
+app.get("/", (req, res) => {
+  res.send("Backend is running!");
+});
+
+// =============================
 // 1) ROUTE ROLE
 // =============================
 app.get("/api/sessions/:sessionId/me", async (req, res) => {
@@ -123,7 +130,12 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
 // -----------------------------
 // Lancement du serveur
 // -----------------------------
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3001;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Backend running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
