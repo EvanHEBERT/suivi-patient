@@ -44,9 +44,6 @@ export default function CallPage({ lang, setLang }) {
   const [role, setRole] = useState(searchParams.get("role") === "tech" ? "tech" : "patient");
   const isTech = role === "tech";
 
-  const [loadingRole, setLoadingRole] = useState(!!sessionId);
-  const [roleError, setRoleError] = useState(null);
-
   // --- IA DEMO STATES (mode technicien) ---
   const [transcript, setTranscript] = useState([
     { who: "Patient", text: "Bonjour, j’ai un souci avec mon appareil..." },
@@ -211,57 +208,6 @@ export default function CallPage({ lang, setLang }) {
   const t = translations[lang] || translations.fr;
   const isRTL = lang === "ar";
   const textDir = isRTL ? "rtl" : "ltr";
-
-  // ===============================
-  // 1) Récupération role depuis backend
-  // ===============================
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchRole() {
-      try {
-        setLoadingRole(true);
-        setRoleError(null);
-
-        // Exemple : backend sur même domaine
-        // Si tu utilises cookies: credentials: "include"
-        const res = await fetch(`/api/sessions/${sessionId}/me`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-
-        if (!data.role || (data.role !== "patient" && data.role !== "tech")) {
-          throw new Error("Invalid role returned by server");
-        }
-
-        if (!cancelled) {
-          setRole(data.role);
-        }
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) {
-          setRoleError(t.roleError);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingRole(false);
-        }
-      }
-    }
-
-    if (sessionId) fetchRole();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
 
   // ===============================
   // 1b) WebRTC & Signaling
@@ -493,14 +439,12 @@ export default function CallPage({ lang, setLang }) {
   }
 
   useEffect(() => {
-    // On démarre la caméra uniquement quand on sait le rôle (optionnel)
-    if (!loadingRole && role) {
-      startCameraAndMic();
-    }
+    // On démarre la caméra dès que le composant est monté
+    startCameraAndMic();
 
     return () => stopStreamFully();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingRole, role]);
+  }, []);
 
   // ===============================
   // 2b) Logique IA (Enregistrement & Analyse)
@@ -712,69 +656,6 @@ export default function CallPage({ lang, setLang }) {
       window.removeEventListener("touchend", handleDragEnd);
     };
   }, [isDragging, handleDragMove, handleDragEnd]);
-
-  // ===============================
-  // UI loading role
-  // ===============================
-  if (loadingRole) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          width: "100vw",
-          background: "#0b1220",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Arial",
-          fontWeight: 900,
-          fontSize: 18,
-        }}
-      >
-        {t.loading}
-      </div>
-    );
-  }
-
-  if (roleError) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          width: "100vw",
-          background: "#0b1220",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Arial",
-          padding: 24,
-          textAlign: "center",
-        }}
-      >
-        <div>
-          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 12 }}>
-            {roleError}
-          </div>
-          <button
-            onClick={() => navigate("/")}
-            style={{
-              padding: "12px 18px",
-              borderRadius: 14,
-              border: "none",
-              background: "#ef4444",
-              color: "white",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            Retour
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // ===============================
   // UI principale
