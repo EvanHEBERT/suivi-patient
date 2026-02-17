@@ -1,6 +1,6 @@
 // App.jsx
-import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 
 import logo from "./assets/logo.png";
 import ContactPage from "./ContactPage.jsx";
@@ -31,6 +31,7 @@ export default function App() {
 }
 
 function HomePage({ lang, setLang }) {
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -164,6 +165,15 @@ function HomePage({ lang, setLang }) {
     gap: 10,
     wordBreak: "break-word",
     background: "white",
+  };
+
+  const handleStartCall = (role) => {
+    const newSessionId = Math.random().toString(36).substring(2, 11);
+    let path = `/call/${newSessionId}`;
+    if (role === 'tech') {
+      path += '?role=tech';
+    }
+    navigate(path);
   };
 
   return (
@@ -303,55 +313,52 @@ function HomePage({ lang, setLang }) {
 
           <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
             {/* Bouton Patient */}
-            <Link to="/call" style={{ textDecoration: 'none' }}>
-              <button
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: "#0284c7",
-                  color: "white",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {t.btnPatient}
-              </button>
-            </Link>
+            <button
+              onClick={() => handleStartCall("patient")}
+              style={{
+                padding: "12px 24px",
+                borderRadius: 12,
+                border: "none",
+                background: "#0284c7",
+                color: "white",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {t.btnPatient}
+            </button>
 
             {/* Bouton Technicien */}
-            <Link to="/call?role=tech" style={{ textDecoration: 'none' }}>
-              <button
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 12,
-                  border: "1px solid #0f172a",
-                  background: "#0f172a",
-                  color: "white",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {t.btnTech}
-              </button>
-            </Link>
+            <button
+              onClick={() => handleStartCall("tech")}
+              style={{
+                padding: "12px 24px",
+                borderRadius: 12,
+                border: "1px solid #0f172a",
+                background: "#0f172a",
+                color: "white",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {t.btnTech}
+            </button>
 
             {/* Bouton Contact */}
-            <Link to="/contact" style={{ textDecoration: 'none' }}>
-              <button
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 12,
-                  border: "1px solid #0284c7",
-                  background: "white",
-                  color: "#0284c7",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {t.btnContact}
-              </button>
-            </Link>
+            <button
+              onClick={() => navigate("/contact")}
+              style={{
+                padding: "12px 24px",
+                borderRadius: 12,
+                border: "1px solid #0284c7",
+                background: "white",
+                color: "#0284c7",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {t.btnContact}
+            </button>
           </div>
         </div>
       </div>

@@ -4,10 +4,13 @@ import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
 import OpenAI from "openai";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 
 // -----------------------------
 // CORS
@@ -28,6 +31,39 @@ app.use(
 );
 
 app.use(express.json());
+
+// -----------------------------
+// Socket.io (Signaling)
+// -----------------------------
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
+  socket.on("join-room", (roomId) => {
+    socket.join(roomId);
+    // Notifier les autres
+    socket.to(roomId).emit("user-connected", socket.id);
+  });
+
+  socket.on("offer", (payload) => {
+    socket.to(payload.roomId).emit("offer", payload.offer);
+  });
+
+  socket.on("answer", (payload) => {
+    socket.to(payload.roomId).emit("answer", payload.answer);
+  });
+
+  socket.on("ice-candidate", (payload) => {
+    socket.to(payload.roomId).emit("ice-candidate", payload.candidate);
+  });
+});
 
 // -----------------------------
 // Multer pour upload audio
@@ -197,7 +233,7 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
 const PORT = process.env.PORT || 3001;
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Backend running on http://localhost:${PORT}`);
   });
 }

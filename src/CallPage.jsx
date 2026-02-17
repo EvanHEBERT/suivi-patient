@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
+import { io } from "socket.io-client";
 
 export default function CallPage({ lang, setLang }) {
   const navigate = useNavigate();
@@ -9,6 +10,9 @@ export default function CallPage({ lang, setLang }) {
 
   const localVideoRef = useRef(null);
   const streamRef = useRef(null);
+  const socketRef = useRef(null);
+  const peerRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const timeoutRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const aiIntervalRef = useRef(null);
@@ -25,6 +29,7 @@ export default function CallPage({ lang, setLang }) {
   const [isPipHovered, setIsPipHovered] = useState(false);
 
   // --- Draggable PiP ---
+  const [linkCopied, setLinkCopied] = useState(false);
   const [pipPosition, setPipPosition] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragInfoRef = useRef(null);
@@ -72,6 +77,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Micro OFF",
       switchCamera: "Changer de caméra",
       fullscreenOn: "Plein écran",
+      copyLink: "Copier le lien",
+      linkCopied: "Lien copié !",
       fullscreenOff: "Quitter Plein Écran",
       techMode: "Mode technicien",
       aiPanel: "Assistant IA",
@@ -93,6 +100,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Mic OFF",
       switchCamera: "Switch camera",
       fullscreenOn: "Fullscreen",
+      copyLink: "Copy link",
+      linkCopied: "Link copied!",
       fullscreenOff: "Exit Fullscreen",
       techMode: "Technician Mode",
       aiPanel: "AI Assistant",
@@ -114,6 +123,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Micrófono OFF",
       switchCamera: "Cambiar cámara",
       fullscreenOn: "Pantalla completa",
+      copyLink: "Copiar enlace",
+      linkCopied: "¡Enlace copiado!",
       fullscreenOff: "Salir de pantalla completa",
       techMode: "Modo Técnico",
       aiPanel: "Asistente IA",
@@ -135,6 +146,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Microfone OFF",
       switchCamera: "Mudar câmera",
       fullscreenOn: "Tela cheia",
+      copyLink: "Copiar link",
+      linkCopied: "Link copiado!",
       fullscreenOff: "Sair da tela cheia",
       techMode: "Modo Técnico",
       aiPanel: "Assistente IA",
@@ -156,6 +169,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "ميكروفون مطفأ",
       switchCamera: "تبديل الكاميرا",
       fullscreenOn: "ملء الشاشة",
+      copyLink: "نسخ الرابط",
+      linkCopied: "تم نسخ الرابط!",
       fullscreenOff: "خروج من ملء الشاشة",
       techMode: "وضع الفني",
       aiPanel: "مساعد الذكاء الاصطناعي",
@@ -177,6 +192,8 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Mikrofon KAPALI",
       switchCamera: "Kamerayı değiştir",
       fullscreenOn: "Tam Ekran",
+      copyLink: "Bağlantıyı kopyala",
+      linkCopied: "Bağlantı kopyalandı!",
       fullscreenOff: "Tam Ekrandan Çık",
       techMode: "Teknisyen Modu",
       aiPanel: "YZ Asistanı",
@@ -247,6 +264,83 @@ export default function CallPage({ lang, setLang }) {
   }, [sessionId]);
 
   // ===============================
+  // 1b) WebRTC & Signaling
+  // ===============================
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
+    // Connexion Socket.io
+    socketRef.current = io(API_URL);
+
+    if (sessionId) {
+      socketRef.current.emit("join-room", sessionId);
+    }
+
+    socketRef.current.on("user-connected", () => {
+      // On est l'initiateur, on crée l'offre
+      createPeerConnection().then(async (pc) => {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socketRef.current.emit("offer", { offer, roomId: sessionId });
+      });
+    });
+
+    socketRef.current.on("offer", async (offer) => {
+      const pc = await createPeerConnection();
+      await pc.setRemoteDescription(offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socketRef.current.emit("answer", { answer, roomId: sessionId });
+    });
+
+    socketRef.current.on("answer", async (answer) => {
+      if (peerRef.current) {
+        await peerRef.current.setRemoteDescription(answer);
+      }
+    });
+
+    socketRef.current.on("ice-candidate", async (candidate) => {
+      if (peerRef.current) {
+        await peerRef.current.addIceCandidate(candidate);
+      }
+    });
+
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+      if (peerRef.current) peerRef.current.close();
+    };
+  }, [sessionId]);
+
+  const createPeerConnection = async () => {
+    if (peerRef.current) return peerRef.current;
+
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit("ice-candidate", {
+          candidate: event.candidate,
+          roomId: sessionId,
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => pc.addTrack(track, streamRef.current));
+    }
+
+    peerRef.current = pc;
+    return pc;
+  };
+
+  // ===============================
   // 2) Gestion caméra/micro
   // ===============================
   function stopStreamFully() {
@@ -275,6 +369,15 @@ export default function CallPage({ lang, setLang }) {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         await localVideoRef.current.play();
+      }
+
+      // Ajouter les pistes au peer connection si déjà existant
+      if (peerRef.current) {
+        stream.getTracks().forEach((track) => {
+          try {
+            peerRef.current.addTrack(track, stream);
+          } catch (e) { console.log(e); }
+        });
       }
 
       const videoTrack = stream.getVideoTracks()[0];
@@ -525,6 +628,17 @@ export default function CallPage({ lang, setLang }) {
     );
   }
 
+  function copyLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('role'); // Remove role for the patient link
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(err => {
+      console.error('Failed to copy link: ', err);
+    });
+  }
+
   // ===============================
   // 4) Draggable PiP Handlers
   // ===============================
@@ -697,21 +811,18 @@ export default function CallPage({ lang, setLang }) {
           background: "#1c1c1c",
         }}
       >
-        {/* Placeholder for remote video */}
-        <div style={{
+        {/* Remote Video (WebRTC) */}
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          style={{
             width: '100%',
             height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            color: '#555',
-            fontSize: '18px',
-            gap: 10
-        }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect><circle cx="12" cy="12" r="4"></circle></svg>
-            <span>Caméra du patient</span>
-        </div>
+            objectFit: 'cover',
+            background: '#1c1c1c'
+          }}
+        />
 
         {/* Local video (PiP) */}
         <video
@@ -973,6 +1084,26 @@ export default function CallPage({ lang, setLang }) {
                     <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
                   </svg>
                 )}
+              </button>
+            )}
+
+            {isTech && (
+              <button
+                onClick={copyLink}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: 14,
+                  border: "1px solid #a78bfa",
+                  background: linkCopied ? "#a78bfa" : "transparent",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  minWidth: isMobile ? "auto" : 160,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  transition: "background 0.2s",
+                }}
+              >
+                {linkCopied ? t.linkCopied : t.copyLink}
               </button>
             )}
 
