@@ -76,9 +76,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 // -----------------------------
 // Client OpenAI
 // -----------------------------
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let client;
+if (process.env.OPENAI_API_KEY) {
+  client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} else {
+  console.warn("⚠️ OPENAI_API_KEY manquante. L'IA est désactivée.");
+}
 
 // =============================
 // 0) ROUTE RACINE (Health Check)
@@ -129,6 +132,10 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
       return res.status(400).json({ error: "Aucun fichier audio reçu" });
     }
 
+    if (!client) {
+      return res.status(503).json({ error: "Service IA indisponible (Clé manquante)" });
+    }
+
     // 1) Transcription (Whisper)
     const transcription = await client.audio.transcriptions.create({
       file: new Blob([req.file.buffer], { type: req.file.mimetype }), // Node 18+ / Vite
@@ -173,6 +180,10 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Aucun fichier audio" });
+    }
+
+    if (!client) {
+      return res.json({ text: "", questions: [], checklist: [] });
     }
 
     // 1. Transcription
