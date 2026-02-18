@@ -255,57 +255,27 @@ export default function CallPage({ lang, setLang }) {
   }
 
   async function toggleCamera() {
-    if (!streamRef.current) {
-      startCameraAndMic();
+    if (!streamRef.current) { // Should not happen, but as a fallback
+      await startCameraAndMic();
       return;
     }
 
-    if (cameraOn) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.stop();
-        streamRef.current.removeTrack(videoTrack);
-      }
-      setCameraOn(false);
-    } else {
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode },
-        });
-        const newVideoTrack = newStream.getVideoTracks()[0];
-        streamRef.current.addTrack(newVideoTrack);
-        setCameraOn(true);
-
-        if (!micOn && localVideoRef.current) {
-          localVideoRef.current.srcObject = streamRef.current;
-        }
-      } catch (err) {
-        console.error(err);
-      }
+    const videoTrack = streamRef.current.getVideoTracks()[0];
+    if (videoTrack) {
+      // This is the standard and most efficient way to mute/unmute video.
+      // It sends black frames instead of stopping the track, avoiding freezes and renegotiation.
+      videoTrack.enabled = !videoTrack.enabled;
+      setCameraOn(videoTrack.enabled);
     }
   }
 
   async function toggleMic() {
     if (!streamRef.current) return;
 
-    if (micOn) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.stop();
-        streamRef.current.removeTrack(audioTrack);
-      }
-      setMicOn(false);
-    } else {
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        const newAudioTrack = newStream.getAudioTracks()[0];
-        streamRef.current.addTrack(newAudioTrack);
-        setMicOn(true);
-      } catch (err) {
-        console.error(err);
-      }
+    const audioTrack = streamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      setMicOn(audioTrack.enabled);
     }
   }
 
@@ -330,6 +300,14 @@ export default function CallPage({ lang, setLang }) {
 
       // Add the new track to our main stream
       streamRef.current.addTrack(newVideoTrack);
+
+      // Also update the track being sent to the other peer
+      if (peerRef.current) {
+        const sender = peerRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          await sender.replaceTrack(newVideoTrack);
+        }
+      }
 
       // If the video element isn't showing the stream, set it.
       if (localVideoRef.current.srcObject !== streamRef.current) {
