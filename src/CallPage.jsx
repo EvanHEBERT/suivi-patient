@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { io } from "socket.io-client";
 
+// v2.1 - Force Update for TURN (4G Fix)
 export default function CallPage({ lang, setLang }) {
   const navigate = useNavigate();
   const { sessionId } = useParams();
@@ -351,12 +352,17 @@ export default function CallPage({ lang, setLang }) {
           // === AJOUTEZ VOS SERVEURS TURN ICI POUR LA 4G ===
           // Configuration TURN pour la 4G/5G
           {
-            urls: [
-              "turn:global.turn.metered.ca:80",
-              "turn:global.turn.metered.ca:443",
-              "turns:global.turn.metered.ca:443",
-              "turns:global.turn.metered.ca:80"
-            ],
+            urls: "turn:global.turn.metered.ca:80",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
+          },
+          {
+            urls: "turn:global.turn.metered.ca:443",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
+          },
+          {
+            urls: "turns:global.turn.metered.ca:443",
             username: "ae80448b77c01560caf4cfe5",
             credential: "BxIEKClfG3J6rfdr",
           },
@@ -364,11 +370,18 @@ export default function CallPage({ lang, setLang }) {
       });
 
       pc.onicecandidate = (event) => {
-        if (event.candidate && socketRef.current) {
+        if (event.candidate) {
+          // Log pour vérifier si on utilise bien le relais (TURN)
+          if (event.candidate.candidate && event.candidate.candidate.includes("relay")) {
+            console.log("✅ Candidat RELAY (TURN) trouvé ! La connexion 4G est possible.");
+          }
+          
+          if (socketRef.current) {
           socketRef.current.emit("ice-candidate", {
             candidate: event.candidate,
             roomId: sessionId,
           });
+          }
         }
       };
 
