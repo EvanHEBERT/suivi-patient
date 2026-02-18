@@ -390,6 +390,11 @@ export default function CallPage({ lang, setLang }) {
         console.log("📡 État de la connexion ICE :", pc.iceConnectionState);
       };
 
+      // Log pour déboguer la collecte des candidats
+      pc.onicegatheringstatechange = () => {
+        console.log("📡 État de la collecte ICE :", pc.iceGatheringState);
+      };
+
       pc.ontrack = (event) => {
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
