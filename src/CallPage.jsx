@@ -466,19 +466,27 @@ export default function CallPage({ lang, setLang }) {
 
       socket.on("offer", async (offer) => {
         console.log("📩 Offre reçue");
-        const pc = createPeerConnection();
-        await pc.setRemoteDescription(offer);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit("answer", { answer: pc.localDescription, roomId: sessionId });
-        await processIceQueue();
+        try {
+          const pc = createPeerConnection();
+          await pc.setRemoteDescription(offer);
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit("answer", { answer: pc.localDescription, roomId: sessionId });
+          await processIceQueue();
+        } catch (e) {
+          console.error("❌ Erreur lors de la gestion de l'offre:", e);
+        }
       });
 
       socket.on("answer", async (answer) => {
         console.log("📩 Réponse reçue");
-        if (peerRef.current) {
-          await peerRef.current.setRemoteDescription(answer);
-          await processIceQueue();
+        try {
+          if (peerRef.current) {
+            await peerRef.current.setRemoteDescription(answer);
+            await processIceQueue();
+          }
+        } catch (e) {
+          console.error("❌ Erreur lors de la gestion de la réponse:", e);
         }
       });
 
