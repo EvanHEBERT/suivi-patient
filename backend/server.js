@@ -44,10 +44,12 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  console.log("New client connected:", socket.id);
+  let currentRoomId = null;
+  console.log("✅ New client connected:", socket.id);
 
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
+    currentRoomId = roomId;
     // Notifier les autres
     socket.to(roomId).emit("user-connected", socket.id);
   });
@@ -62,6 +64,13 @@ io.on("connection", (socket) => {
 
   socket.on("ice-candidate", (payload) => {
     socket.to(payload.roomId).emit("ice-candidate", payload.candidate);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+    if (currentRoomId) {
+      socket.to(currentRoomId).emit("user-disconnected", socket.id);
+    }
   });
 });
 
