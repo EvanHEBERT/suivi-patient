@@ -397,7 +397,10 @@ export default function CallPage({ lang, setLang }) {
       }
 
       // Si on est en local, on tente localhost:3001 par défaut, sinon l'URL Vercel (qui ne marchera pas pour la vidéo mais pour le reste)
-      const defaultUrl = window.location.hostname === "localhost" ? "http://localhost:3001" : "https://suivi-patient.vercel.app";
+      // ⚠️ IMPORTANT : Si vous êtes sur Render, remplacez l'URL ci-dessous par celle de Render si la variable d'env ne marche pas
+      // ex: "https://mon-backend.onrender.com"
+      const defaultUrl = window.location.hostname === "localhost" ? "http://localhost:3001" : "https://suivi-patient.onrender.com";
+      
       const API_URL = import.meta.env.VITE_API_URL || defaultUrl;
       
       const socket = io(API_URL);
@@ -490,7 +493,7 @@ export default function CallPage({ lang, setLang }) {
             formData.append("audio", e.data, "chunk.webm");
 
             try {
-              const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
+              const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.onrender.com";
               const res = await fetch(`${API_URL}/api/analyze-conversation`, {
                 method: "POST",
                 body: formData,
@@ -589,7 +592,7 @@ export default function CallPage({ lang, setLang }) {
 
   function copyLink() {
     const url = new URL(window.location.href);
-    url.searchParams.set('role', 'patient'); // Explicitly set role to patient
+    url.searchParams.set('role', 'patient'); // Force le rôle patient
     navigator.clipboard.writeText(url.toString()).then(() => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);

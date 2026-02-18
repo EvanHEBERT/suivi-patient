@@ -15,17 +15,11 @@ const httpServer = createServer(app);
 // -----------------------------
 // CORS
 // -----------------------------
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
 app.use(
   cors({
-    origin: allowedOrigins,
+    // ⚠️ EN PROD : Remplacez "*" par votre URL frontend pour la sécurité
+    // Pour le débogage, on autorise tout le monde :
+    origin: "*",
     credentials: true,
   })
 );
@@ -37,7 +31,7 @@ app.use(express.json());
 // -----------------------------
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true,
   },
