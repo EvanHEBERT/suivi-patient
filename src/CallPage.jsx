@@ -342,7 +342,18 @@ export default function CallPage({ lang, setLang }) {
       if (peerRef.current) return peerRef.current;
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        iceServers: [
+          // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
+          { urls: "stun:stun.l.google.com:19302" },
+          
+          // === AJOUTEZ VOS SERVEURS TURN ICI POUR LA 4G ===
+          // Configuration TURN pour la 4G/5G
+          {
+            urls: "turn:global.turn.metered.ca:80",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
+          },
+        ],
       });
 
       pc.onicecandidate = (event) => {
@@ -352,6 +363,11 @@ export default function CallPage({ lang, setLang }) {
             roomId: sessionId,
           });
         }
+      };
+
+      // Log pour déboguer la connexion (très utile pour voir si ça bloque)
+      pc.oniceconnectionstatechange = () => {
+        console.log("📡 État de la connexion ICE :", pc.iceConnectionState);
       };
 
       pc.ontrack = (event) => {
