@@ -40,9 +40,8 @@ export default function CallPage({ lang, setLang }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ---- ROLE depuis backend ----
-  const [role, setRole] = useState(searchParams.get("role") === "tech" ? "tech" : "patient");
-  const isTech = role === "tech";
+  // ---- ROLE via URL (Lecture directe, plus fiable) ----
+  const isTech = searchParams.get("role") === "tech";
 
   // --- IA DEMO STATES (mode technicien) ---
   const [transcript, setTranscript] = useState([
@@ -120,7 +119,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Micrófono OFF",
       switchCamera: "Cambiar cámara",
       fullscreenOn: "Pantalla completa",
-      copyLink: "Copiar enlace",
+      copyLink: "Copiar enlace paciente",
       linkCopied: "¡Enlace copiado!",
       fullscreenOff: "Salir de pantalla completa",
       techMode: "Modo Técnico",
@@ -143,7 +142,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Microfone OFF",
       switchCamera: "Mudar câmera",
       fullscreenOn: "Tela cheia",
-      copyLink: "Copiar link",
+      copyLink: "Copiar link do paciente",
       linkCopied: "Link copiado!",
       fullscreenOff: "Sair da tela cheia",
       techMode: "Modo Técnico",
@@ -166,7 +165,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "ميكروفون مطفأ",
       switchCamera: "تبديل الكاميرا",
       fullscreenOn: "ملء الشاشة",
-      copyLink: "نسخ الرابط",
+      copyLink: "نسخ رابط المريض",
       linkCopied: "تم نسخ الرابط!",
       fullscreenOff: "خروج من ملء الشاشة",
       techMode: "وضع الفني",
@@ -189,7 +188,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Mikrofon KAPALI",
       switchCamera: "Kamerayı değiştir",
       fullscreenOn: "Tam Ekran",
-      copyLink: "Bağlantıyı kopyala",
+      copyLink: "Hasta bağlantısını kopyala",
       linkCopied: "Bağlantı kopyalandı!",
       fullscreenOff: "Tam Ekrandan Çık",
       techMode: "Teknisyen Modu",
