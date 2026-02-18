@@ -336,7 +336,9 @@ export default function CallPage({ lang, setLang }) {
   // 1b) Setup Call (Media + WebRTC + Signaling)
   // ===============================
   useEffect(() => {
+    let isMounted = true;
     let localStream = null;
+    const iceCandidatesQueue = [];
 
     const createPeerConnection = () => {
       if (peerRef.current) return peerRef.current;
@@ -389,8 +391,23 @@ export default function CallPage({ lang, setLang }) {
       return pc;
     };
 
+    const processIceQueue = async () => {
+      if (!peerRef.current) return;
+      while (iceCandidatesQueue.length > 0) {
+        const candidate = iceCandidatesQueue.shift();
+        try {
+          await peerRef.current.addIceCandidate(candidate);
+        } catch (e) {
+          console.error("Error adding queued ice candidate", e);
+        }
+      }
+    };
+
     async function setupCall() {
-      localStream = await startCameraAndMic();
+      const stream = await startCameraAndMic();
+      if (!isMounted) return; // Component unmounted
+      localStream = stream;
+
       if (!localStream || !sessionId) {
         console.error("Could not start call: missing local stream or session ID.");
         return;
@@ -435,22 +452,26 @@ export default function CallPage({ lang, setLang }) {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         socket.emit("answer", { answer: pc.localDescription, roomId: sessionId });
+        await processIceQueue();
       });
 
       socket.on("answer", async (answer) => {
         console.log("📩 Réponse reçue");
         if (peerRef.current) {
           await peerRef.current.setRemoteDescription(answer);
+          await processIceQueue();
         }
       });
 
       socket.on("ice-candidate", async (candidate) => {
-        if (peerRef.current) {
+        if (peerRef.current && peerRef.current.remoteDescription) {
           try {
             await peerRef.current.addIceCandidate(candidate);
           } catch (e) {
             console.error("Error adding received ice candidate", e);
           }
+        } else {
+          iceCandidatesQueue.push(candidate);
         }
       });
     }
@@ -458,6 +479,7 @@ export default function CallPage({ lang, setLang }) {
     setupCall();
 
     return () => {
+      isMounted = false;
       stopStreamFully();
       if (socketRef.current) socketRef.current.disconnect();
       if (peerRef.current) peerRef.current.close();
