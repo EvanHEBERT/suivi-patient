@@ -435,7 +435,7 @@ export default function CallPage({ lang, setLang }) {
       // ⚠️ IMPORTANT : Si vous êtes sur Render, remplacez l'URL ci-dessous par celle de Render si la variable d'env ne marche pas
       // Pour le développement local sur plusieurs appareils (ex: PC + téléphone), utilisez l'IP de votre machine.
       // Sur Mac: Préférences Système > Réseau. Sur Windows: `ipconfig` dans le terminal.
-      const defaultUrl = "http://192.168.1.34:3001"; // ⚠️ REMPLACEZ "192.168.1.34" PAR VOTRE PROPRE IP LOCALE
+      const defaultUrl = "https://suivi-patient.onrender.com"; // ✅ URL du backend sur Render
       
       const API_URL = import.meta.env.VITE_API_URL || defaultUrl; // VITE_API_URL aura la priorité si défini
       
