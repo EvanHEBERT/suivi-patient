@@ -27,6 +27,7 @@ export default function CallPage({ lang, setLang }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
   const [isPipHovered, setIsPipHovered] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // --- Draggable PiP ---
   const [linkCopied, setLinkCopied] = useState(false);
@@ -396,13 +397,26 @@ export default function CallPage({ lang, setLang }) {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
+      // Si on est en local, on tente localhost:3001 par défaut, sinon l'URL Vercel (qui ne marchera pas pour la vidéo mais pour le reste)
+      const defaultUrl = window.location.hostname === "localhost" ? "http://localhost:3001" : "https://suivi-patient.vercel.app";
+      const API_URL = import.meta.env.VITE_API_URL || defaultUrl;
+      
       const socket = io(API_URL);
       socketRef.current = socket;
 
-      socket.on("connect", () => socket.emit("join-room", sessionId));
+      socket.on("connect", () => {
+        console.log("🟢 Connecté au serveur de signalisation");
+        setSocketConnected(true);
+        socket.emit("join-room", sessionId);
+      });
+
+      socket.on("disconnect", () => {
+        console.log("🔴 Déconnecté du serveur");
+        setSocketConnected(false);
+      });
 
       socket.on("user-connected", () => {
+        console.log("👋 Un autre utilisateur a rejoint la salle !");
         const pc = createPeerConnection();
         pc.createOffer()
           .then(offer => pc.setLocalDescription(offer))
@@ -413,6 +427,7 @@ export default function CallPage({ lang, setLang }) {
       });
 
       socket.on("offer", async (offer) => {
+        console.log("📩 Offre reçue");
         const pc = createPeerConnection();
         await pc.setRemoteDescription(offer);
         const answer = await pc.createAnswer();
@@ -421,6 +436,7 @@ export default function CallPage({ lang, setLang }) {
       });
 
       socket.on("answer", async (answer) => {
+        console.log("📩 Réponse reçue");
         if (peerRef.current) {
           await peerRef.current.setRemoteDescription(answer);
         }
@@ -769,6 +785,18 @@ export default function CallPage({ lang, setLang }) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, flexShrink: 1, minWidth: 0 }}>
+              {/* Indicateur de connexion Socket */}
+              <div
+                title={socketConnected ? "Connecté au serveur" : "Déconnecté (Vérifiez le backend)"}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: socketConnected ? "#22c55e" : "#ef4444",
+                  boxShadow: socketConnected ? "0 0 8px #22c55e" : "none",
+                  flexShrink: 0
+                }}
+              />
               <img src={logo} alt="Logo" style={{ height: isMobile ? 32 : 40, flexShrink: 0 }} />
               <div style={{ 
                 fontSize: isMobile ? 11 : 14,
