@@ -58,7 +58,7 @@ export default function CallPage({ lang, setLang }) {
   ]);
 
   const [checklist, setChecklist] = useState([
-    { label: "Vérifier alimentation / batterie", done: false },dcp 
+    { label: "Vérifier alimentation / batterie", done: false },
     { label: "Redémarrage complet effectué", done: false },
     { label: "Test de connexion réseau", done: false },
     { label: "Vérifier câbles / accessoires", done: false },
@@ -74,7 +74,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Micro OFF",
       switchCamera: "Changer de caméra",
       fullscreenOn: "Plein écran",
-      copyLink: "Copier le lien",
+      copyLink: "Copier lien patient",
       linkCopied: "Lien copié !",
       fullscreenOff: "Quitter Plein Écran",
       techMode: "Mode technicien",
@@ -97,7 +97,7 @@ export default function CallPage({ lang, setLang }) {
       micOff: "Mic OFF",
       switchCamera: "Switch camera",
       fullscreenOn: "Fullscreen",
-      copyLink: "Copy link",
+      copyLink: "Copy patient link",
       linkCopied: "Link copied!",
       fullscreenOff: "Exit Fullscreen",
       techMode: "Technician Mode",
