@@ -574,7 +574,7 @@ export default function CallPage({ lang, setLang }) {
 
   function copyLink() {
     const url = new URL(window.location.href);
-    url.searchParams.delete('role'); // Remove role for the patient link
+    url.searchParams.set('role', 'patient'); // Explicitly set role to patient
     navigator.clipboard.writeText(url.toString()).then(() => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
