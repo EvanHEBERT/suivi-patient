@@ -433,10 +433,11 @@ export default function CallPage({ lang, setLang }) {
 
       // Si on est en local, on tente localhost:3001 par défaut, sinon l'URL Vercel (qui ne marchera pas pour la vidéo mais pour le reste)
       // ⚠️ IMPORTANT : Si vous êtes sur Render, remplacez l'URL ci-dessous par celle de Render si la variable d'env ne marche pas
-      // ex: "https://mon-backend.onrender.com"
-      const defaultUrl = window.location.hostname === "localhost" ? "http://localhost:3001" : "https://suivi-patient.onrender.com";
+      // Pour le développement local sur plusieurs appareils (ex: PC + téléphone), utilisez l'IP de votre machine.
+      // Sur Mac: Préférences Système > Réseau. Sur Windows: `ipconfig` dans le terminal.
+      const defaultUrl = "http://192.168.1.34:3001"; // ⚠️ REMPLACEZ "192.168.1.34" PAR VOTRE PROPRE IP LOCALE
       
-      const API_URL = import.meta.env.VITE_API_URL || defaultUrl;
+      const API_URL = import.meta.env.VITE_API_URL || defaultUrl; // VITE_API_URL aura la priorité si défini
       
       const socket = io(API_URL);
       socketRef.current = socket;
