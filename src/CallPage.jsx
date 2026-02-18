@@ -58,7 +58,7 @@ export default function CallPage({ lang, setLang }) {
   ]);
 
   const [checklist, setChecklist] = useState([
-    { label: "Vérifier alimentation / batterie", done: false },
+    { label: "Vérifier alimentation / batterie", done: false },dcp 
     { label: "Redémarrage complet effectué", done: false },
     { label: "Test de connexion réseau", done: false },
     { label: "Vérifier câbles / accessoires", done: false },
@@ -210,83 +210,6 @@ export default function CallPage({ lang, setLang }) {
   const textDir = isRTL ? "rtl" : "ltr";
 
   // ===============================
-  // 1b) WebRTC & Signaling
-  // ===============================
-  useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
-    // Connexion Socket.io
-    socketRef.current = io(API_URL);
-
-    if (sessionId) {
-      socketRef.current.emit("join-room", sessionId);
-    }
-
-    socketRef.current.on("user-connected", () => {
-      // On est l'initiateur, on crée l'offre
-      createPeerConnection().then(async (pc) => {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socketRef.current.emit("offer", { offer, roomId: sessionId });
-      });
-    });
-
-    socketRef.current.on("offer", async (offer) => {
-      const pc = await createPeerConnection();
-      await pc.setRemoteDescription(offer);
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socketRef.current.emit("answer", { answer, roomId: sessionId });
-    });
-
-    socketRef.current.on("answer", async (answer) => {
-      if (peerRef.current) {
-        await peerRef.current.setRemoteDescription(answer);
-      }
-    });
-
-    socketRef.current.on("ice-candidate", async (candidate) => {
-      if (peerRef.current) {
-        await peerRef.current.addIceCandidate(candidate);
-      }
-    });
-
-    return () => {
-      if (socketRef.current) socketRef.current.disconnect();
-      if (peerRef.current) peerRef.current.close();
-    };
-  }, [sessionId]);
-
-  const createPeerConnection = async () => {
-    if (peerRef.current) return peerRef.current;
-
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socketRef.current.emit("ice-candidate", {
-          candidate: event.candidate,
-          roomId: sessionId,
-        });
-      }
-    };
-
-    pc.ontrack = (event) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => pc.addTrack(track, streamRef.current));
-    }
-
-    peerRef.current = pc;
-    return pc;
-  };
-
-  // ===============================
   // 2) Gestion caméra/micro
   // ===============================
   function stopStreamFully() {
@@ -317,24 +240,17 @@ export default function CallPage({ lang, setLang }) {
         await localVideoRef.current.play();
       }
 
-      // Ajouter les pistes au peer connection si déjà existant
-      if (peerRef.current) {
-        stream.getTracks().forEach((track) => {
-          try {
-            peerRef.current.addTrack(track, stream);
-          } catch (e) { console.log(e); }
-        });
-      }
-
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
 
       setCameraOn(!!videoTrack);
       setMicOn(!!audioTrack);
+      return stream;
     } catch (err) {
       console.error(err);
       setCameraOn(false);
       setMicOn(false);
+      return null;
     }
   }
 
@@ -438,13 +354,98 @@ export default function CallPage({ lang, setLang }) {
     navigate("/");
   }
 
+  // ===============================
+  // 1b) Setup Call (Media + WebRTC + Signaling)
+  // ===============================
   useEffect(() => {
-    // On démarre la caméra dès que le composant est monté
-    startCameraAndMic();
+    let localStream = null;
 
-    return () => stopStreamFully();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const createPeerConnection = () => {
+      if (peerRef.current) return peerRef.current;
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate && socketRef.current) {
+          socketRef.current.emit("ice-candidate", {
+            candidate: event.candidate,
+            roomId: sessionId,
+          });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+      }
+
+      peerRef.current = pc;
+      return pc;
+    };
+
+    async function setupCall() {
+      localStream = await startCameraAndMic();
+      if (!localStream || !sessionId) {
+        console.error("Could not start call: missing local stream or session ID.");
+        return;
+      }
+
+      const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.vercel.app";
+      const socket = io(API_URL);
+      socketRef.current = socket;
+
+      socket.on("connect", () => socket.emit("join-room", sessionId));
+
+      socket.on("user-connected", () => {
+        const pc = createPeerConnection();
+        pc.createOffer()
+          .then(offer => pc.setLocalDescription(offer))
+          .then(() => {
+            socket.emit("offer", { offer: pc.localDescription, roomId: sessionId });
+          })
+          .catch(e => console.error("Error creating offer:", e));
+      });
+
+      socket.on("offer", async (offer) => {
+        const pc = createPeerConnection();
+        await pc.setRemoteDescription(offer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("answer", { answer: pc.localDescription, roomId: sessionId });
+      });
+
+      socket.on("answer", async (answer) => {
+        if (peerRef.current) {
+          await peerRef.current.setRemoteDescription(answer);
+        }
+      });
+
+      socket.on("ice-candidate", async (candidate) => {
+        if (peerRef.current) {
+          try {
+            await peerRef.current.addIceCandidate(candidate);
+          } catch (e) {
+            console.error("Error adding received ice candidate", e);
+          }
+        }
+      });
+    }
+
+    setupCall();
+
+    return () => {
+      stopStreamFully();
+      if (socketRef.current) socketRef.current.disconnect();
+      if (peerRef.current) peerRef.current.close();
+    };
+  }, [sessionId]);
 
   // ===============================
   // 2b) Logique IA (Enregistrement & Analyse)
