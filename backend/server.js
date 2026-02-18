@@ -245,11 +245,8 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
 // Lancement du serveur
 // -----------------------------
 const PORT = process.env.PORT || 3001;
-
-if (!process.env.VERCEL) {
-  httpServer.listen(PORT, () => {
-    console.log(`Backend running on http://localhost:${PORT}`);
-  });
-}
-
-export default app;
+ 
+httpServer.listen(PORT, () => {
+  // Ce log sera visible dans les logs de Render au démarrage
+  console.log(`✅ Backend server listening on port ${PORT}`);
+});
