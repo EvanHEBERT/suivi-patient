@@ -349,7 +349,12 @@ export default function CallPage({ lang, setLang }) {
           // === AJOUTEZ VOS SERVEURS TURN ICI POUR LA 4G ===
           // Configuration TURN pour la 4G/5G
           {
-            urls: "turn:global.turn.metered.ca:80",
+            urls: [
+              "turn:global.turn.metered.ca:80",
+              "turn:global.turn.metered.ca:443",
+              "turns:global.turn.metered.ca:443",
+              "turns:global.turn.metered.ca:80"
+            ],
             username: "ae80448b77c01560caf4cfe5",
             credential: "BxIEKClfG3J6rfdr",
           },
