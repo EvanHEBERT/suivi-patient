@@ -347,24 +347,20 @@ export default function CallPage({ lang, setLang }) {
       const pc = new RTCPeerConnection({
         iceServers: [
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
-          { urls: "stun:stun.l.google.com:19302" },
-          
-          // === AJOUTEZ VOS SERVEURS TURN ICI POUR LA 4G ===
-          // Configuration TURN pour la 4G/5G
+          { urls: "stun:stun.l.google.com:19302" }, // Pour les cas simples
+
+          // --- SERVEURS TURN POUR LES CAS COMPLEXES (4G, PARE-FEU) ---
+          // ⚠️ Ces clés sont TEMPORAIRES et expireront. Pour la production,
+          // créez un compte sur un service comme Metered, Twilio, etc.
           {
-            urls: "turn:global.turn.metered.ca:80",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
+            urls: "turn:fr-par-1.turn.metered.ca:80",
+            username: "e43a1314243519808381861d",
+            credential: "Y/Y/v0aV6x8wQ+yL",
           },
           {
-            urls: "turn:global.turn.metered.ca:443",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
-          },
-          {
-            urls: "turns:global.turn.metered.ca:443",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
+            urls: "turns:fr-par-1.turn.metered.ca:443",
+            username: "e43a1314243519808381861d",
+            credential: "Y/Y/v0aV6x8wQ+yL",
           },
         ],
       });
