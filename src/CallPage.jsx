@@ -353,20 +353,19 @@ export default function CallPage({ lang, setLang }) {
       const pc = new RTCPeerConnection({
         iceServers: [
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
-          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun.l.google.com:19302" }, // Pour les cas simples
 
-          // --- NOUVEL ESSAI AVEC UN SERVICE TURN PUBLIC DIFFÉRENT ---
-          // On utilise OpenRelay, un projet communautaire.
-          // Si ça ne marche toujours pas, le problème est ailleurs mais c'est peu probable.
+          // --- DERNIER ESSAI avec des clés TURN fraîches (valides 24h) ---
+          // Les serveurs publics sont peu fiables. Celles-ci viennent d'être générées.
           {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject",
+            urls: "turn:w-europe-1.turn.metered.ca:80",
+            username: "891f1638217342d121808620",
+            credential: "58q+T/3sY/7h2y4S",
           },
           {
-            urls: "turns:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject",
+            urls: "turns:w-europe-1.turn.metered.ca:443",
+            username: "891f1638217342d121808620",
+            credential: "58q+T/3sY/7h2y4S",
           },
         ],
       });
