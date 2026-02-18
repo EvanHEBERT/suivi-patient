@@ -29,6 +29,7 @@ export default function CallPage({ lang, setLang }) {
   const [facingMode, setFacingMode] = useState("user"); // 'user' or 'environment'
   const [isPipHovered, setIsPipHovered] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]); // Pour afficher les logs à l'écran
 
   // --- Draggable PiP ---
   const [linkCopied, setLinkCopied] = useState(false);
@@ -210,6 +211,11 @@ export default function CallPage({ lang, setLang }) {
   const isRTL = lang === "ar";
   const textDir = isRTL ? "rtl" : "ltr";
 
+  // Helper pour afficher les logs à l'écran
+  const addLog = (msg) => {
+    setDebugLogs((prev) => [...prev.slice(-8), msg]); // Garde les 8 derniers messages
+  };
+
   // ===============================
   // 2) Gestion caméra/micro
   // ===============================
@@ -347,20 +353,20 @@ export default function CallPage({ lang, setLang }) {
       const pc = new RTCPeerConnection({
         iceServers: [
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
-          { urls: "stun:stun.l.google.com:19302" }, // Pour les cas simples
+          { urls: "stun:stun.l.google.com:19302" },
 
-          // --- SERVEURS TURN POUR LES CAS COMPLEXES (4G, PARE-FEU) ---
-          // ⚠️ Ces clés sont TEMPORAIRES et expireront. Pour la production,
-          // créez un compte sur un service comme Metered, Twilio, etc.
+          // --- NOUVEL ESSAI AVEC UN SERVICE TURN PUBLIC DIFFÉRENT ---
+          // On utilise OpenRelay, un projet communautaire.
+          // Si ça ne marche toujours pas, le problème est ailleurs mais c'est peu probable.
           {
-            urls: "turn:fr-par-1.turn.metered.ca:80",
-            username: "e43a1314243519808381861d",
-            credential: "Y/Y/v0aV6x8wQ+yL",
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject",
           },
           {
-            urls: "turns:fr-par-1.turn.metered.ca:443",
-            username: "e43a1314243519808381861d",
-            credential: "Y/Y/v0aV6x8wQ+yL",
+            urls: "turns:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject",
           },
         ],
       });
@@ -370,6 +376,7 @@ export default function CallPage({ lang, setLang }) {
           // Log pour vérifier si on utilise bien le relais (TURN)
           if (event.candidate.candidate && event.candidate.candidate.includes("relay")) {
             console.log("✅ Candidat RELAY (TURN) trouvé ! La connexion 4G est possible.");
+            addLog("✅ RELAY TURN TROUVÉ");
           }
           
           if (socketRef.current) {
@@ -381,14 +388,24 @@ export default function CallPage({ lang, setLang }) {
         }
       };
 
+      // AJOUT : Log spécifique pour les erreurs de serveur ICE (STUN/TURN)
+      pc.onicecandidateerror = (event) => {
+        const err = `❌ ICE ERR: ${event.errorCode} ${event.errorText}`;
+        console.error(err);
+        addLog(err);
+      };
+
       // Log pour déboguer la connexion (très utile pour voir si ça bloque)
       pc.oniceconnectionstatechange = () => {
-        console.log("📡 État de la connexion ICE :", pc.iceConnectionState);
+        const state = `📡 ICE State: ${pc.iceConnectionState}`;
+        console.log(state);
+        addLog(state);
       };
 
       // Log pour déboguer la collecte des candidats
       pc.onicegatheringstatechange = () => {
-        console.log("📡 État de la collecte ICE :", pc.iceGatheringState);
+        console.log("📡 Gathering:", pc.iceGatheringState);
+        addLog(`📡 Gathering: ${pc.iceGatheringState}`);
       };
 
       pc.ontrack = (event) => {
@@ -440,12 +457,14 @@ export default function CallPage({ lang, setLang }) {
 
       socket.on("connect", () => {
         console.log("🟢 Connecté au serveur de signalisation");
+        addLog("🟢 Socket Connecté");
         setSocketConnected(true);
         socket.emit("join-room", sessionId);
       });
 
       socket.on("disconnect", () => {
         console.log("🔴 Déconnecté du serveur");
+        addLog("🔴 Socket Déconnecté");
         setSocketConnected(false);
       });
 
@@ -462,6 +481,7 @@ export default function CallPage({ lang, setLang }) {
 
       socket.on("offer", async (offer) => {
         console.log("📩 Offre reçue");
+        addLog("📩 Offre reçue");
         try {
           const pc = createPeerConnection();
           await pc.setRemoteDescription(offer);
@@ -471,11 +491,13 @@ export default function CallPage({ lang, setLang }) {
           await processIceQueue();
         } catch (e) {
           console.error("❌ Erreur lors de la gestion de l'offre:", e);
+          addLog("❌ Erreur Offre");
         }
       });
 
       socket.on("answer", async (answer) => {
         console.log("📩 Réponse reçue");
+        addLog("📩 Réponse reçue");
         try {
           if (peerRef.current) {
             await peerRef.current.setRemoteDescription(answer);
@@ -483,6 +505,7 @@ export default function CallPage({ lang, setLang }) {
           }
         } catch (e) {
           console.error("❌ Erreur lors de la gestion de la réponse:", e);
+          addLog("❌ Erreur Réponse");
         }
       });
 
@@ -744,6 +767,26 @@ export default function CallPage({ lang, setLang }) {
         setIsHovered(false);
       }}
     >
+      {/* DEBUG LOGS OVERLAY (Affiché en bas à gauche) */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 100, // Au-dessus des boutons
+          left: 10,
+          zIndex: 9999,
+          pointerEvents: "none",
+          fontSize: "10px",
+          fontFamily: "monospace",
+          color: "#00ff00",
+          background: "rgba(0,0,0,0.7)",
+          padding: "5px",
+          borderRadius: "4px",
+          maxWidth: "200px",
+        }}
+      >
+        {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+      </div>
+
       {/* ZONE VIDEO */}
       <div
         ref={videoZoneRef}
