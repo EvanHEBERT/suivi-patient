@@ -549,11 +549,16 @@ export default function CallPage({ lang, setLang }) {
 
     // Fonction pour démarrer une boucle d'enregistrement
     const startRecordingLoop = () => {
-      if (!streamRef.current) return;
+      // CIBLE : L'audio du patient (Remote) si disponible, sinon soi-même (Local) pour tester
+      const targetStream = remoteVideoRef.current?.srcObject || streamRef.current;
 
-      // On utilise le flux local pour la démo (en prod: mixer avec flux distant)
+      if (!targetStream || targetStream.getAudioTracks().length === 0) {
+        console.log("IA: Pas de flux audio à analyser pour le moment.");
+        return;
+      }
+
       try {
-        const recorder = new MediaRecorder(streamRef.current);
+        const recorder = new MediaRecorder(targetStream);
         mediaRecorderRef.current = recorder;
 
         recorder.ondataavailable = async (e) => {
