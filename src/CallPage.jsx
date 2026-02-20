@@ -353,7 +353,9 @@ export default function CallPage({ lang, setLang }) {
       const pc = new RTCPeerConnection({
         iceServers: [
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
-          { urls: "stun:stun.l.google.com:19302" }, // Pour les cas simples
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
 
           // --- OPENRELAY (Service TURN public gratuit et stable) ---
           {
@@ -398,6 +400,10 @@ export default function CallPage({ lang, setLang }) {
         const state = `📡 ICE State: ${pc.iceConnectionState}`;
         console.log(state);
         addLog(state);
+        if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected") {
+          addLog("❌ ÉCHEC P2P: Réseau trop strict");
+          addLog("👉 Essayez de désactiver le WiFi (ou la 4G)");
+        }
       };
 
       // Log pour déboguer la collecte des candidats
