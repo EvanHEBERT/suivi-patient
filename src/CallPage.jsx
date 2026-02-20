@@ -3,6 +3,16 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { io } from "socket.io-client";
 
+// Helper pour déterminer l'URL du backend (Local vs Prod)
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.") || host.startsWith("10.")) {
+    return `http://${host}:3001`;
+  }
+  return "https://suivi-patient.onrender.com";
+};
+
 // v2.1 - Force Update for TURN (4G Fix)
 export default function CallPage({ lang, setLang }) {
   const navigate = useNavigate();
@@ -355,7 +365,7 @@ export default function CallPage({ lang, setLang }) {
     setIsAiLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.onrender.com";
+      const API_URL = getApiUrl();
       const res = await fetch(`${API_URL}/api/ask-ai`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -482,10 +492,7 @@ export default function CallPage({ lang, setLang }) {
       // ⚠️ IMPORTANT : Si vous êtes sur Render, remplacez l'URL ci-dessous par celle de Render si la variable d'env ne marche pas
       // Pour le développement local sur plusieurs appareils (ex: PC + téléphone), utilisez l'IP de votre machine.
       // Sur Mac: Préférences Système > Réseau. Sur Windows: `ipconfig` dans le terminal.
-      const defaultUrl = "https://suivi-patient.onrender.com"; // ✅ URL du backend sur Render
-      
-      const API_URL = import.meta.env.VITE_API_URL || defaultUrl; // VITE_API_URL aura la priorité si défini
-      
+      const API_URL = getApiUrl();
       const socket = io(API_URL);
       socketRef.current = socket;
 
@@ -600,7 +607,7 @@ export default function CallPage({ lang, setLang }) {
             formData.append("audio", e.data, "chunk.webm");
 
             try {
-              const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.onrender.com";
+              const API_URL = getApiUrl();
               const res = await fetch(`${API_URL}/api/analyze-conversation`, {
                 method: "POST",
                 body: formData,
@@ -831,7 +838,7 @@ export default function CallPage({ lang, setLang }) {
         ref={videoZoneRef}
         style={{
           position: "relative",
-          width: isTech && !isMobile ? "70%" : "100%",
+          width: isTech && aiActive && !isMobile ? "70%" : "100%",
           height: isTech && isMobile ? "50%" : "100%",
           overflow: "hidden",
           background: "#1c1c1c",
@@ -1187,7 +1194,7 @@ export default function CallPage({ lang, setLang }) {
       </div>
 
       {/* Panneau technicien */}
-      {isTech && (
+      {isTech && aiActive && (
         <div
           style={{
             width: isMobile ? "100%" : "30%",
