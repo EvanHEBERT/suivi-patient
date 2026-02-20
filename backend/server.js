@@ -60,10 +60,6 @@ io.on("connection", (socket) => {
     socket.to(payload.roomId).emit("ice-candidate", payload.candidate);
   });
 
-  socket.on("send-message", (payload) => {
-    socket.to(payload.roomId).emit("receive-message", payload.message);
-  });
-
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected:", socket.id);
     if (currentRoomId) {
@@ -244,6 +240,32 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erreur analyse IA" });
+  }
+});
+
+// =============================
+// 4) ROUTE QUESTION IA (TEXTE)
+// =============================
+app.post("/api/ask-ai", async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!client) return res.json({ reply: "IA non configurée." });
+
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un assistant expert pour technicien médical. Ton domaine est STRICTEMENT limité au support technique d'équipements médicaux et au suivi patient. Si la question est hors sujet, refuse poliment. Réponds de façon concise."
+        },
+        { role: "user", content: text }
+      ]
+    });
+
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur IA" });
   }
 });
 

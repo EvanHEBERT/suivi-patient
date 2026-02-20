@@ -31,12 +31,10 @@ export default function CallPage({ lang, setLang }) {
   const [socketConnected, setSocketConnected] = useState(false);
   const [debugLogs, setDebugLogs] = useState([]); // Pour afficher les logs à l'écran
   
-  // --- Chat ---
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
-  const isChatOpenRef = useRef(false); // Pour accès dans socket listener
+  // --- Chat IA ---
+  const [aiChatMessages, setAiChatMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // --- Draggable PiP ---
   const [linkCopied, setLinkCopied] = useState(false);
@@ -49,11 +47,6 @@ export default function CallPage({ lang, setLang }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    isChatOpenRef.current = isChatOpen;
-    if (isChatOpen) setUnreadCount(0);
-  }, [isChatOpen]);
 
   // ---- ROLE via URL (Lecture directe, plus fiable) ----
   const isTech = searchParams.get("role") === "tech";
@@ -101,10 +94,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "Activer l'IA",
       stopAI: "Arrêter l'IA",
       listening: "Analyse en cours...",
-      chat: "Chat",
-      typeMessage: "Votre message...",
-      send: "Envoyer",
-      close: "Fermer",
     },
     en: {
       tagline: "Your trusted health partner",
@@ -128,10 +117,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "Start AI",
       stopAI: "Stop AI",
       listening: "Listening...",
-      chat: "Chat",
-      typeMessage: "Your message...",
-      send: "Send",
-      close: "Close",
     },
     es: {
       tagline: "Tu socio de salud de confianza",
@@ -155,10 +140,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "Activar IA",
       stopAI: "Detener IA",
       listening: "Escuchando...",
-      chat: "Chat",
-      typeMessage: "Su mensaje...",
-      send: "Enviar",
-      close: "Cerrar",
     },
     pt: {
       tagline: "Seu parceiro de saúde de confiança",
@@ -182,10 +163,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "Ativar IA",
       stopAI: "Parar IA",
       listening: "Ouvindo...",
-      chat: "Chat",
-      typeMessage: "Sua mensagem...",
-      send: "Enviar",
-      close: "Fechar",
     },
     ar: {
       tagline: "شريكك الصحي الموثوق",
@@ -209,10 +186,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "تفعيل الذكاء الاصطناعي",
       stopAI: "إيقاف الذكاء الاصطناعي",
       listening: "جاري الاستماع...",
-      chat: "دردشة",
-      typeMessage: "رسالتك...",
-      send: "إرسال",
-      close: "إغلاق",
     },
     tr: {
       tagline: "Güvenilir sağlık ortağınız",
@@ -236,10 +209,6 @@ export default function CallPage({ lang, setLang }) {
       startAI: "YZ'yi Başlat",
       stopAI: "YZ'yi Durdur",
       listening: "Dinleniyor...",
-      chat: "Sohbet",
-      typeMessage: "Mesajınız...",
-      send: "Gönder",
-      close: "Kapat",
     },
   };
 
@@ -375,20 +344,31 @@ export default function CallPage({ lang, setLang }) {
     navigate("/");
   }
 
-  // --- Chat Functions ---
-  const sendMessage = (e) => {
+  // --- AI Chat Function ---
+  const sendToAI = async (e) => {
     e?.preventDefault();
-    if (!chatInput.trim()) return;
-    const msg = { 
-        text: chatInput, 
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-        sender: isTech ? "Technicien" : "Patient" 
-    };
-    setChatMessages((prev) => [...prev, { ...msg, isMe: true }]);
-    if (socketRef.current) {
-        socketRef.current.emit("send-message", { roomId: sessionId, message: msg });
+    if (!aiInput.trim()) return;
+
+    const userMsg = { sender: "user", text: aiInput };
+    setAiChatMessages((prev) => [...prev, userMsg]);
+    setAiInput("");
+    setIsAiLoading(true);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "https://suivi-patient.onrender.com";
+      const res = await fetch(`${API_URL}/api/ask-ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: userMsg.text }),
+      });
+      const data = await res.json();
+      setAiChatMessages((prev) => [...prev, { sender: "ai", text: data.reply || "Erreur IA" }]);
+    } catch (err) {
+      console.error(err);
+      setAiChatMessages((prev) => [...prev, { sender: "ai", text: "Erreur de connexion." }]);
+    } finally {
+      setIsAiLoading(false);
     }
-    setChatInput("");
   };
 
   // ===============================
@@ -572,13 +552,6 @@ export default function CallPage({ lang, setLang }) {
           }
         } else {
           iceCandidatesQueue.push(candidate);
-        }
-      });
-
-      socket.on("receive-message", (msg) => {
-        setChatMessages((prev) => [...prev, { ...msg, isMe: false }]);
-        if (!isChatOpenRef.current) {
-             setUnreadCount(prev => prev + 1);
         }
       });
     }
@@ -1172,44 +1145,6 @@ export default function CallPage({ lang, setLang }) {
               </button>
             )}
 
-            {/* Bouton Chat */}
-            <button
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              style={{
-                padding: "12px 18px",
-                borderRadius: 14,
-                border: "none",
-                background: isChatOpen ? "#0ea5e9" : "#334155",
-                color: "white",
-                fontWeight: 900,
-                cursor: "pointer",
-                minWidth: isMobile ? "auto" : 160,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                position: "relative"
-              }}
-            >
-              💬 {t.chat}
-              {unreadCount > 0 && (
-                <span style={{
-                  position: "absolute",
-                  top: -5,
-                  right: -5,
-                  background: "#ef4444",
-                  color: "white",
-                  borderRadius: "50%",
-                  width: 20,
-                  height: 20,
-                  fontSize: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "2px solid #1e293b"
-                }}>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
             <button
               onClick={hangUp}
               style={{
@@ -1259,168 +1194,130 @@ export default function CallPage({ lang, setLang }) {
             height: isMobile ? "50%" : "100%",
             background: "rgba(15, 23, 42, 0.98)",
             color: "white",
-            padding: 16,
             display: "flex",
             flexDirection: "column",
-            gap: 12,
-            overflowY: "auto",
             borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.08)",
             borderTop: isMobile ? "1px solid rgba(255,255,255,0.08)" : "none",
           }}
         >
-          <div style={{ fontWeight: 900, fontSize: 18 }}>
-            🤖 {t.aiPanel} 
-            {aiActive && (
-              <span style={{ fontSize: 12, color: "#4ade80", marginLeft: 10, animation: "pulse 1.5s infinite" }}>● {t.listening}</span>
-            )}
-          </div>
-
-          <div
-            style={{
-              padding: 12,
-              borderRadius: 14,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>
-              🎧 {t.transcription}
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {transcript.map((line, idx) => (
-                <div key={idx} style={{ fontSize: 13, lineHeight: 1.35 }}>
-                  <span style={{ fontWeight: 900 }}>{line.who} :</span>{" "}
-                  <span style={{ opacity: 0.9 }}>{line.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: 12,
-              borderRadius: 14,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>
-              ❓ {t.questions}
-            </div>
-
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
-              {suggestedQuestions.map((q, idx) => (
-                <li key={idx} style={{ marginBottom: 8, opacity: 0.92 }}>
-                  {q}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div
-            style={{
-              padding: 12,
-              borderRadius: 14,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>
-              ✅ {t.checklist}
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {checklist.map((item, idx) => (
-                <label
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    fontSize: 13,
-                    alignItems: "center",
-                    cursor: "pointer",
-                    opacity: item.done ? 0.6 : 1,
-                    textDecoration: item.done ? "line-through" : "none",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={item.done}
-                    onChange={() => toggleChecklistItem(idx)}
-                  />
-                  {item.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FENÊTRE DE CHAT */}
-      {isChatOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: isMobile ? 0 : "20%",
-            left: isMobile ? 0 : "50%",
-            transform: isMobile ? "none" : "translateX(-50%)",
-            width: isMobile ? "100%" : "400px",
-            height: isMobile ? "100%" : "500px",
-            background: "rgba(15, 23, 42, 0.95)",
-            backdropFilter: "blur(10px)",
-            borderRadius: isMobile ? 0 : 16,
-            border: isMobile ? "none" : "1px solid rgba(255,255,255,0.1)",
-            zIndex: 100,
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-          }}
-        >
-          {/* Header Chat */}
-          <div style={{ padding: 16, borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center", color: "white" }}>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>💬 {t.chat}</div>
-            <button onClick={() => setIsChatOpen(false)} style={{ background: "transparent", border: "none", color: "white", fontSize: 20, cursor: "pointer" }}>✕</button>
-          </div>
-
-          {/* Messages */}
+          {/* Header & Scrollable Content */}
           <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-            {chatMessages.map((msg, idx) => (
-              <div key={idx} style={{ alignSelf: msg.isMe ? "flex-end" : "flex-start", maxWidth: "80%" }}>
-                <div style={{ 
-                  background: msg.isMe ? "#0ea5e9" : "#334155", 
-                  color: "white", 
-                  padding: "8px 12px", 
-                  borderRadius: 12,
-                  borderBottomRightRadius: msg.isMe ? 2 : 12,
-                  borderBottomLeftRadius: msg.isMe ? 12 : 2,
-                  fontSize: 14
-                }}>
-                  {msg.text}
-                </div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 4, textAlign: msg.isMe ? "right" : "left" }}>
-                  {msg.sender} • {msg.time}
-                </div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>
+              🤖 {t.aiPanel} 
+              {aiActive && (
+                <span style={{ fontSize: 12, color: "#4ade80", marginLeft: 10, animation: "pulse 1.5s infinite" }}>● {t.listening}</span>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10 }}>
+                🎧 {t.transcription}
               </div>
-            ))}
-            {chatMessages.length === 0 && (
-              <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", marginTop: 40, fontSize: 14 }}>
-                Aucun message
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {transcript.map((line, idx) => (
+                  <div key={idx} style={{ fontSize: 13, lineHeight: 1.35 }}>
+                    <span style={{ fontWeight: 900 }}>{line.who} :</span>{" "}
+                    <span style={{ opacity: 0.9 }}>{line.text}</span>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10 }}>
+                ❓ {t.questions}
+              </div>
+
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                {suggestedQuestions.map((q, idx) => (
+                  <li key={idx} style={{ marginBottom: 8, opacity: 0.92 }}>
+                    {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10 }}>
+                ✅ {t.checklist}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {checklist.map((item, idx) => (
+                  <label
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      fontSize: 13,
+                      alignItems: "center",
+                      cursor: "pointer",
+                      opacity: item.done ? 0.6 : 1,
+                      textDecoration: item.done ? "line-through" : "none",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={() => toggleChecklistItem(idx)}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Input */}
-          <form onSubmit={sendMessage} style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 10 }}>
-            <input 
-              type="text" 
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={t.typeMessage}
-              style={{ flex: 1, padding: 12, borderRadius: 10, border: "none", background: "rgba(255,255,255,0.1)", color: "white", outline: "none" }}
-            />
-            <button type="submit" style={{ padding: "0 20px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "white", fontWeight: 900, cursor: "pointer" }}>{t.send}</button>
-          </form>
+          {/* AI Chat Section (Fixed at bottom) */}
+          <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.2)" }}>
+            <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 8 }}>💬 Discussion IA</div>
+            <div style={{ maxHeight: 150, overflowY: "auto", marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+               {aiChatMessages.map((msg, i) => (
+                 <div key={i} style={{ 
+                   alignSelf: msg.sender === "user" ? "flex-end" : "flex-start", 
+                   background: msg.sender === "user" ? "#3b82f6" : "#334155", 
+                   padding: "6px 10px", 
+                   borderRadius: 8, 
+                   fontSize: 12,
+                   maxWidth: "85%"
+                 }}>
+                   {msg.text}
+                 </div>
+               ))}
+               {isAiLoading && <div style={{ fontSize: 11, fontStyle: "italic", opacity: 0.6 }}>L'IA réfléchit...</div>}
+            </div>
+            <form onSubmit={sendToAI} style={{ display: "flex", gap: 6 }}>
+              <input 
+                value={aiInput} 
+                onChange={e => setAiInput(e.target.value)} 
+                placeholder="Posez une question..." 
+                style={{ flex: 1, background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 6, padding: "8px 10px", color: "white", fontSize: 13, outline: "none" }} 
+              />
+              <button type="submit" style={{ background: "#3b82f6", border: "none", borderRadius: 6, padding: "0 12px", color: "white", cursor: "pointer" }}>➤</button>
+            </form>
+          </div>
         </div>
       )}
     </div>
