@@ -139,7 +139,7 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
     // 1) Transcription (Whisper)
     const transcription = await client.audio.transcriptions.create({
       file: new Blob([req.file.buffer], { type: req.file.mimetype }), // Node 18+ / Vite
-      model: "gpt-4o-mini-transcribe",
+      model: "whisper-1",
       language: "fr",
     });
 
