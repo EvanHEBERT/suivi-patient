@@ -60,6 +60,10 @@ io.on("connection", (socket) => {
     socket.to(payload.roomId).emit("ice-candidate", payload.candidate);
   });
 
+  socket.on("send-message", (payload) => {
+    socket.to(payload.roomId).emit("receive-message", payload.message);
+  });
+
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected:", socket.id);
     if (currentRoomId) {
@@ -203,8 +207,10 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
     // 2. Analyse LLM pour extraire questions et checklist
     const systemPrompt = `
       Tu es un assistant IA expert pour un technicien de support technique.
-      Analyse ce fragment de conversation.
+      Ton périmètre est STRICTEMENT restreint au support technique d'équipements médicaux et au suivi patient.
+      Si le texte analysé ne concerne pas ce domaine, renvoie des listes vides.
       
+      Analyse ce fragment de conversation.
       Tâche :
       1. Suggère 3 questions pertinentes que le technicien devrait poser maintenant pour avancer le diagnostic.
       2. Suggère des actions pour la checklist de dépannage (si pertinent).
