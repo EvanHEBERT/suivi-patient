@@ -346,33 +346,15 @@ export default function CallPage({ lang, setLang }) {
     let isMounted = true;
     let localStream = null;
     const iceCandidatesQueue = [];
+    
+    // Initialisation avec un serveur STUN de secours, sera écrasé par l'API Metered
+    let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
 
     const createPeerConnection = () => {
       if (peerRef.current) return peerRef.current;
 
       const pc = new RTCPeerConnection({
-        iceServers: [
-          // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
-          { urls: "stun:stun.l.google.com:19302" },
-
-          // --- CONFIGURATION TURN ROBUSTE (TCP + UDP) ---
-          {
-            // On force TCP pour passer les pare-feux stricts qui bloquent l'UDP
-            urls: "turn:global.turn.metered.ca:80?transport=tcp",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
-          },
-          {
-            urls: "turn:global.turn.metered.ca:80?transport=udp",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
-          },
-          {
-            urls: "turns:global.turn.metered.ca:443?transport=tcp",
-            username: "ae80448b77c01560caf4cfe5",
-            credential: "BxIEKClfG3J6rfdr",
-          },
-        ],
+        iceServers: iceServers,
       });
 
       pc.onicecandidate = (event) => {
@@ -443,6 +425,18 @@ export default function CallPage({ lang, setLang }) {
     };
 
     async function setupCall() {
+      // 1. Récupération dynamique des identifiants TURN (Metered)
+      try {
+        const response = await fetch("https://suivi-patient.metered.live/api/v1/turn/credentials?apiKey=bbf51b50a0809c792c55dea1160707c73121");
+        const servers = await response.json();
+        iceServers = servers;
+        console.log("✅ TURN credentials fetched from Metered");
+        addLog("✅ TURN Credentials Fetched");
+      } catch (err) {
+        console.error("❌ Error fetching TURN credentials:", err);
+        addLog("⚠️ TURN Fetch Failed");
+      }
+
       const stream = await startCameraAndMic();
       if (!isMounted) return; // Component unmounted
       localStream = stream;
