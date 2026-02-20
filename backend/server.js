@@ -44,7 +44,7 @@ io.on("connection", (socket) => {
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
     currentRoomId = roomId;
-    // Notifier les autres clients dans la salle (sauf l'émetteur)
+    // ⚠️ CRITIQUE : On s'assure que l'émetteur ne reçoit PAS son propre message
     socket.broadcast.to(roomId).emit("user-connected", socket.id);
   });
 

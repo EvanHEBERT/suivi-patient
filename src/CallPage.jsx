@@ -355,15 +355,20 @@ export default function CallPage({ lang, setLang }) {
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
           { urls: "stun:stun.l.google.com:19302" },
 
-          // 🔴 REMPLACEZ CECI PAR VOS CLÉS METERED.CA (Tableau de bord > TURN Credentials) 🔴
-          // Exemple de configuration (utilisez VOS valeurs) :
+          // --- CONFIGURATION TURN ROBUSTE (TCP + UDP) ---
           {
-            urls: "turn:global.turn.metered.ca:80",
+            // On force TCP pour passer les pare-feux stricts qui bloquent l'UDP
+            urls: "turn:global.turn.metered.ca:80?transport=tcp",
             username: "ae80448b77c01560caf4cfe5",
             credential: "BxIEKClfG3J6rfdr",
           },
           {
-            urls: "turns:global.turn.metered.ca:443",
+            urls: "turn:global.turn.metered.ca:80?transport=udp",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
+          },
+          {
+            urls: "turns:global.turn.metered.ca:443?transport=tcp",
             username: "ae80448b77c01560caf4cfe5",
             credential: "BxIEKClfG3J6rfdr",
           },
