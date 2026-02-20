@@ -354,19 +354,18 @@ export default function CallPage({ lang, setLang }) {
         iceServers: [
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
           { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
 
-          // --- OPENRELAY (Service TURN public gratuit et stable) ---
+          // 🔴 REMPLACEZ CECI PAR VOS CLÉS METERED.CA (Tableau de bord > TURN Credentials) 🔴
+          // Exemple de configuration (utilisez VOS valeurs) :
           {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject",
+            urls: "turn:global.turn.metered.ca:80",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
           },
           {
-            urls: "turns:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject",
+            urls: "turns:global.turn.metered.ca:443",
+            username: "ae80448b77c01560caf4cfe5",
+            credential: "BxIEKClfG3J6rfdr",
           },
         ],
       });
