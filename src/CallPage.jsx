@@ -355,17 +355,16 @@ export default function CallPage({ lang, setLang }) {
           // Serveur STUN public (Google) - Gratuit et fonctionne pour les connexions simples
           { urls: "stun:stun.l.google.com:19302" }, // Pour les cas simples
 
-          // --- DERNIER ESSAI avec des clés TURN fraîches (valides 24h) ---
-          // Les serveurs publics sont peu fiables. Celles-ci viennent d'être générées.
+          // --- OPENRELAY (Service TURN public gratuit et stable) ---
           {
-            urls: "turn:w-europe-1.turn.metered.ca:80",
-            username: "891f1638217342d121808620",
-            credential: "58q+T/3sY/7h2y4S",
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject",
           },
           {
-            urls: "turns:w-europe-1.turn.metered.ca:443",
-            username: "891f1638217342d121808620",
-            credential: "58q+T/3sY/7h2y4S",
+            urls: "turns:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject",
           },
         ],
       });
