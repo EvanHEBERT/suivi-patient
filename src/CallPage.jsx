@@ -372,10 +372,12 @@ export default function CallPage({ lang, setLang }) {
         body: JSON.stringify({ text: userMsg.text }),
       });
       const data = await res.json();
-      setAiChatMessages((prev) => [...prev, { sender: "ai", text: data.reply || "Erreur IA" }]);
+      // Affiche la réponse OU l'erreur spécifique renvoyée par le backend
+      const replyText = data.reply || data.error || "Erreur IA (Réponse vide)";
+      setAiChatMessages((prev) => [...prev, { sender: "ai", text: replyText }]);
     } catch (err) {
       console.error(err);
-      setAiChatMessages((prev) => [...prev, { sender: "ai", text: "Erreur de connexion." }]);
+      setAiChatMessages((prev) => [...prev, { sender: "ai", text: "Erreur de connexion (Backend inaccessible)." }]);
     } finally {
       setIsAiLoading(false);
     }
