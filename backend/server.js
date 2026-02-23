@@ -247,7 +247,7 @@ app.post("/api/ask-ai", async (req, res) => {
     const { text } = req.body;
     if (!genAI) return res.json({ reply: "IA non configurée." });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
     const prompt = `
       Tu es un assistant expert pour technicien médical. 

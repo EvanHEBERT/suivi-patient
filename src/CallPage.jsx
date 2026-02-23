@@ -656,7 +656,9 @@ export default function CallPage({ lang, setLang }) {
     };
 
     if (micOn) {
-      startRecordingLoop();
+      // --- ANALYSE AUDIO EN PAUSE POUR LE MOMENT ---
+      // Pour réactiver, décommentez la ligne ci-dessous.
+      // startRecordingLoop();
     }
 
     return () => {
