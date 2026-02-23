@@ -238,8 +238,14 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
       checklist: analysis.checklist || [],
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erreur analyse IA" });
+    console.error("❌ Erreur Analyse IA:", err);
+    let errorMessage = "Erreur analyse IA";
+    if (err.status === 429) {
+      errorMessage = "Quota OpenAI dépassé (429). Vérifiez vos crédits sur platform.openai.com.";
+    } else if (err.status === 401) {
+      errorMessage = "Clé API invalide (401).";
+    }
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -269,6 +275,8 @@ app.post("/api/ask-ai", async (req, res) => {
     let errorMessage = err.message || "Erreur interne IA";
     if (err.status === 401) {
       errorMessage = "Clé API OpenAI invalide ou expirée. Vérifiez vos variables d'environnement.";
+    } else if (err.status === 429) {
+      errorMessage = "Quota OpenAI dépassé (429). Votre compte n'a plus de crédits.";
     }
     // On renvoie le message d'erreur précis pour aider au débogage
     res.status(500).json({ error: errorMessage });
