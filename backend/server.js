@@ -138,7 +138,7 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
 
     // Configuration du modèle Gemini Flash (rapide et multimodal)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
+      model: "gemini-1.0-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -184,7 +184,7 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
+      model: "gemini-1.0-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -233,7 +233,7 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
     } else if (err.message && (err.message.includes("API key not valid") || err.message.includes("[403 Forbidden]"))) {
       errorMessage = "Clé API Gemini invalide.";
     } else if (err.message && err.message.includes("[404 Not Found]")) {
-      errorMessage = "Modèle Gemini non trouvé (404). Essayez 'gemini-pro'.";
+      errorMessage = "Modèle Gemini non trouvé (404). Essayez 'gemini-1.0-pro'.";
     } 
     res.status(500).json({ error: errorMessage });
   }
@@ -247,7 +247,7 @@ app.post("/api/ask-ai", async (req, res) => {
     const { text } = req.body;
     if (!genAI) return res.json({ reply: "IA non configurée." });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
     
     const prompt = `
       Tu es un assistant expert pour technicien médical. 
