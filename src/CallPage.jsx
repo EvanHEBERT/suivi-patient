@@ -40,6 +40,7 @@ export default function CallPage({ lang, setLang }) {
   const [isPipHovered, setIsPipHovered] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [debugLogs, setDebugLogs] = useState([]); // Pour afficher les logs à l'écran
+  const [showDebugLogs, setShowDebugLogs] = useState(false);
   
   // --- Chat IA ---
   const [aiChatMessages, setAiChatMessages] = useState([]);
@@ -816,24 +817,45 @@ export default function CallPage({ lang, setLang }) {
       }}
     >
       {/* DEBUG LOGS OVERLAY (Affiché en bas à gauche) */}
-      <div
+      {showDebugLogs && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 100, // Au-dessus des boutons
+            left: 10,
+            zIndex: 9999,
+            pointerEvents: "none",
+            fontSize: "10px",
+            fontFamily: "monospace",
+            color: "#00ff00",
+            background: "rgba(0,0,0,0.7)",
+            padding: "5px",
+            borderRadius: "4px",
+            maxWidth: "200px",
+          }}
+        >
+          {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+        </div>
+      )}
+
+      <button
+        onClick={() => setShowDebugLogs(!showDebugLogs)}
         style={{
           position: "absolute",
-          bottom: 100, // Au-dessus des boutons
+          bottom: 10,
           left: 10,
-          zIndex: 9999,
-          pointerEvents: "none",
-          fontSize: "10px",
-          fontFamily: "monospace",
-          color: "#00ff00",
-          background: "rgba(0,0,0,0.7)",
-          padding: "5px",
+          zIndex: 10000,
+          background: "rgba(0,0,0,0.5)",
+          color: "white",
+          border: "1px solid rgba(255,255,255,0.3)",
           borderRadius: "4px",
-          maxWidth: "200px",
+          padding: "4px 8px",
+          fontSize: "10px",
+          cursor: "pointer",
         }}
       >
-        {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
-      </div>
+        {showDebugLogs ? "Masquer Logs" : "🐞 Logs"}
+      </button>
 
       {/* ZONE VIDEO */}
       <div
