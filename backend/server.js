@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
@@ -76,11 +76,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 // -----------------------------
 // Client OpenAI
 // -----------------------------
-let client;
-if (process.env.OPENAI_API_KEY) {
-  client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let genAI;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 } else {
-  console.warn("⚠️ OPENAI_API_KEY manquante. L'IA est désactivée.");
+  console.warn("⚠️ GEMINI_API_KEY manquante. L'IA est désactivée.");
 }
 
 // =============================
@@ -132,36 +132,33 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
       return res.status(400).json({ error: "Aucun fichier audio reçu" });
     }
 
-    if (!client) {
+    if (!genAI) {
       return res.status(503).json({ error: "Service IA indisponible (Clé manquante)" });
     }
 
-    // 1) Transcription (Whisper)
-    const transcription = await client.audio.transcriptions.create({
-      file: new Blob([req.file.buffer], { type: req.file.mimetype }), // Node 18+ / Vite
-      model: "whisper-1",
-      language: "fr",
+    // Configuration du modèle Gemini Flash (rapide et multimodal)
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    const frenchText = transcription.text;
+    const prompt = `
+      Tu es un traducteur médical expert.
+      1. Transcris l'audio fourni (qui est en français).
+      2. Traduis cette transcription en "${targetLang}".
+      Réponds UNIQUEMENT avec ce JSON : { "frenchText": "...", "translatedText": "..." }
+    `;
 
-    // 2) Traduction (LLM)
-    const translation = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un traducteur médical. Traduction courte, claire, fidèle, sans inventer.",
-        },
-        {
-          role: "user",
-          content: `Traduis en ${targetLang} : ${frenchText}`,
-        },
-      ],
-    });
+    const audioPart = {
+      inlineData: {
+        data: req.file.buffer.toString("base64"),
+        mimeType: req.file.mimetype,
+      },
+    };
 
-    const translatedText = translation.choices[0].message.content;
+    const result = await model.generateContent([prompt, audioPart]);
+    const response = await result.response;
+    const { frenchText, translatedText } = JSON.parse(response.text());
 
     res.json({
       frenchText,
@@ -182,37 +179,29 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
       return res.status(400).json({ error: "Aucun fichier audio" });
     }
 
-    if (!client) {
+    if (!genAI) {
       return res.json({ text: "", questions: [], checklist: [] });
     }
 
-    // 1. Transcription
-    const transcription = await client.audio.transcriptions.create({
-      file: new Blob([req.file.buffer], { type: req.file.mimetype }),
-      model: "whisper-1",
-      language: "fr",
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    const text = transcription.text;
-    
-    // Si pas assez de texte, on ignore
-    if (!text || text.length < 5) {
-      return res.json({ text: "", questions: [], checklist: [] });
-    }
-
-    // 2. Analyse LLM pour extraire questions et checklist
     const systemPrompt = `
       Tu es un assistant IA expert pour un technicien de support technique.
       Ton périmètre est STRICTEMENT restreint au support technique d'équipements médicaux et au suivi patient.
       Si le texte analysé ne concerne pas ce domaine, renvoie des listes vides.
       
-      Analyse ce fragment de conversation.
+      Analyse l'audio fourni.
       Tâche :
-      1. Suggère 3 questions pertinentes que le technicien devrait poser maintenant pour avancer le diagnostic.
-      2. Suggère des actions pour la checklist de dépannage (si pertinent).
+      1. Transcris l'audio (clé "text").
+      2. Suggère 3 questions pertinentes que le technicien devrait poser maintenant (clé "questions").
+      3. Suggère des actions pour la checklist de dépannage (clé "checklist").
       
       Réponds UNIQUEMENT au format JSON :
       {
+        "text": "Transcription de l'audio...",
         "questions": ["question 1", "question 2", "question 3"],
         "checklist": [
           { "label": "Action suggérée 1", "done": false },
@@ -221,30 +210,28 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
       }
     `;
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Transcription: "${text}"` },
-      ],
-      response_format: { type: "json_object" },
-    });
+    const audioPart = {
+      inlineData: {
+        data: req.file.buffer.toString("base64"),
+        mimeType: req.file.mimetype,
+      },
+    };
 
-    const analysis = JSON.parse(completion.choices[0].message.content);
+    const result = await model.generateContent([systemPrompt, audioPart]);
+    const analysis = JSON.parse(result.response.text());
 
     res.json({
-      text,
+      text: analysis.text || "",
       questions: analysis.questions || [],
       checklist: analysis.checklist || [],
     });
   } catch (err) {
     console.error("❌ Erreur Analyse IA:", err);
     let errorMessage = "Erreur analyse IA";
-    if (err.status === 429) {
-      errorMessage = "Quota OpenAI dépassé (429). Vérifiez vos crédits sur platform.openai.com.";
-    } else if (err.status === 401) {
-      errorMessage = "Clé API invalide (401).";
-    }
+    // Gestion simplifiée des erreurs Gemini
+    if (err.message && err.message.includes("API key")) {
+      errorMessage = "Clé API Gemini invalide.";
+    } 
     res.status(500).json({ error: errorMessage });
   }
 });
@@ -255,29 +242,22 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
 app.post("/api/ask-ai", async (req, res) => {
   try {
     const { text } = req.body;
-    if (!client) return res.json({ reply: "IA non configurée." });
+    if (!genAI) return res.json({ reply: "IA non configurée." });
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Tu es un assistant expert pour technicien médical. Ton domaine est STRICTEMENT limité au support technique d'équipements médicaux et au suivi patient. Si la question est hors sujet, refuse poliment. Réponds de façon concise."
-        },
-        { role: "user", content: text }
-      ]
-    });
-
-    res.json({ reply: completion.choices[0].message.content });
-  } catch (err) {
-    console.error("❌ Erreur API KEY:", err);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
+    const prompt = `
+      Tu es un assistant expert pour technicien médical. 
+      Ton domaine est STRICTEMENT limité au support technique d'équipements médicaux et au suivi patient. 
+      Si la question est hors sujet, refuse poliment. Réponds de façon concise.
+      Question: ${text}
+    `;
+
+    const result = await model.generateContent(prompt);
+    res.json({ reply: result.response.text() });
+  } catch (err) {
+    console.error("❌ Erreur Gemini:", err);
     let errorMessage = err.message || "Erreur interne IA";
-    if (err.status === 401) {
-      errorMessage = "Clé API OpenAI invalide ou expirée. Vérifiez vos variables d'environnement.";
-    } else if (err.status === 429) {
-      errorMessage = "Quota OpenAI dépassé (429). Votre compte n'a plus de crédits.";
-    }
     // On renvoie le message d'erreur précis pour aider au débogage
     res.status(500).json({ error: errorMessage });
   }
