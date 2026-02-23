@@ -138,7 +138,7 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
 
     // Configuration du modèle Gemini Flash (rapide et multimodal)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -184,7 +184,7 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -228,9 +228,12 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
   } catch (err) {
     console.error("❌ Erreur Analyse IA:", err);
     let errorMessage = "Erreur analyse IA";
-    // Gestion simplifiée des erreurs Gemini
-    if (err.message && err.message.includes("API key")) {
+    if (err.message && err.message.includes("[400 Bad Request]")) {
+      errorMessage = "Erreur de requête Gemini (400). Vérifiez le prompt ou les données envoyées.";
+    } else if (err.message && (err.message.includes("API key not valid") || err.message.includes("[403 Forbidden]"))) {
       errorMessage = "Clé API Gemini invalide.";
+    } else if (err.message && err.message.includes("[404 Not Found]")) {
+      errorMessage = "Modèle Gemini non trouvé (404). Essayez 'gemini-pro'.";
     } 
     res.status(500).json({ error: errorMessage });
   }
@@ -244,7 +247,7 @@ app.post("/api/ask-ai", async (req, res) => {
     const { text } = req.body;
     if (!genAI) return res.json({ reply: "IA non configurée." });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
     const prompt = `
       Tu es un assistant expert pour technicien médical. 
