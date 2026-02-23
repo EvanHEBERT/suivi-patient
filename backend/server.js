@@ -255,7 +255,7 @@ app.post("/api/ask-ai", async (req, res) => {
     const prompt = `
       Tu es un assistant expert pour technicien médical. 
       Ton domaine est STRICTEMENT limité au support technique d'équipements médicaux et au suivi patient. 
-      Si la question est hors sujet, refuse poliment. Réponds de façon concise.
+      Si la question est hors sujet, refuse poliment. Réponds de façon concise. Structure tes réponses en utilisant le format Markdown (listes à puces, gras) pour une meilleure lisibilité.
     `;
 
     const chatResponse = await mistral.chat({

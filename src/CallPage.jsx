@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { io } from "socket.io-client";
+import ReactMarkdown from "react-markdown";
 
 // Helper pour déterminer l'URL du backend (Local vs Prod)
 const getApiUrl = () => {
@@ -1328,16 +1329,27 @@ export default function CallPage({ lang, setLang }) {
             <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 8 }}>💬 Discussion IA</div>
             <div style={{ maxHeight: 150, overflowY: "auto", marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                {aiChatMessages.map((msg, i) => (
-                 <div key={i} style={{ 
-                   alignSelf: msg.sender === "user" ? "flex-end" : "flex-start", 
-                   background: msg.sender === "user" ? "#3b82f6" : "#334155", 
-                   padding: "6px 10px", 
-                   borderRadius: 8, 
-                   fontSize: 12,
-                   maxWidth: "85%"
-                 }}>
-                   {msg.text}
-                 </div>
+                <div
+                  key={i}
+                  style={{
+                    alignSelf: msg.sender === "user" ? "flex-end" : "flex-start",
+                    background: msg.sender === "user" ? "#3b82f6" : "#334155",
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    maxWidth: "85%",
+                    lineHeight: 1.4,
+                    color: "white",
+                  }}
+                >
+                  {msg.sender === "ai" ? (
+                    <ReactMarkdown components={{ p: (props) => <p style={{ margin: 0 }} {...props} />, ul: (props) => <ul style={{ margin: '8px 0', paddingLeft: 16 }} {...props} />, li: (props) => <li style={{ marginBottom: 2 }} {...props} /> }}>
+                      {msg.text}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.text
+                  )}
+                </div>
                ))}
                {isAiLoading && <div style={{ fontSize: 11, fontStyle: "italic", opacity: 0.6 }}>L'IA réfléchit...</div>}
             </div>
