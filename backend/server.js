@@ -270,7 +270,7 @@ app.post("/api/ask-ai", async (req, res) => {
 
     res.json({ reply: completion.choices[0].message.content });
   } catch (err) {
-    console.error("❌ Erreur OpenAI:", err);
+    console.error("❌ Erreur API KEY:", err);
     
     let errorMessage = err.message || "Erreur interne IA";
     if (err.status === 401) {
