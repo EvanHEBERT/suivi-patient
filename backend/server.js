@@ -138,7 +138,7 @@ app.post("/api/transcribe-translate", upload.single("audio"), async (req, res) =
 
     // Configuration du modèle Gemini Flash (rapide et multimodal)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -184,7 +184,7 @@ app.post("/api/analyze-conversation", upload.single("audio"), async (req, res) =
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -247,7 +247,7 @@ app.post("/api/ask-ai", async (req, res) => {
     const { text } = req.body;
     if (!genAI) return res.json({ reply: "IA non configurée." });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `
       Tu es un assistant expert pour technicien médical. 
